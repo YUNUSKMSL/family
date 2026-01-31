@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aile Portalı</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --p: #4f46e5; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); margin: 0; }
+        .hidden { display: none !important; }
+        
+        /* Navbar & Profil */
+        .navbar { background: white; padding: 10px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; sticky; top:0; z-index:10; }
+        .nav-user { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px 10px; border-radius: 12px; transition: 0.2s; }
+        .nav-user:hover { background: #f1f5f9; }
+        .avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; background: #ddd; border: 2px solid var(--p); }
+
+        /* Dashboard Grid */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        
+        /* Auth & Profile Modal */
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .auth-card, .modal-card { background: var(--card); padding: 35px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 400px; }
+        
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1.5px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; font-family: inherit; }
+        button { background: var(--p); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; margin-top: 5px; }
+        
+        /* Chat */
+        #chat-box { height: 250px; overflow-y: auto; background: #f8fafc; border-radius: 12px; padding: 10px; margin-bottom: 10px; }
+        .chat-msg { margin-bottom: 10px; display: flex; gap: 10px; align-items: flex-start; }
+        .chat-msg img { width: 30px; height: 30px; border-radius: 50%; }
+        .msg-content { background: white; padding: 8px 12px; border-radius: 12px; font-size: 0.9rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .msg-content b { color: var(--p); font-size: 0.75rem; display: block; }
+
+        .online-dot { height: 10px; width: 10px; background: #22c55e; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; background: #f1f5f9; margin: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="auth-section" class="modal-overlay">
+    <div id="login-box" class="auth-card">
+        <h2>Aile Portalı 🏠</h2>
+        <input type="email" id="l-email" placeholder="E-posta">
+        <input type="password" id="l-pass" placeholder="Şifre">
+        <button onclick="login()">Giriş Yap</button>
+        <p style="font-size: 0.8rem; margin-top:15px;">
+            <a href="#" onclick="switchAuth('reg')" style="color:var(--p)">Kayıt Ol</a> | 
+            <a href="#" onclick="switchAuth('reset')" style="color:var(--p)">Şifremi Unuttum</a>
+        </p>
+    </div>
+    <div id="reg-box" class="auth-card hidden">
+        <h2>Yeni Üye ✨</h2>
+        <input type="text" id="r-name" placeholder="Adınız Soyadınız">
+        <input type="email" id="r-email" placeholder="E-posta">
+        <input type="password" id="r-pass" placeholder="Şifre (Min 6)">
+        <button onclick="register()">Kaydı Tamamla</button>
+        <p><a href="#" onclick="switchAuth('login')">Geri Dön</a></p>
+    </div>
+    <div id="reset-box" class="auth-card hidden">
+        <h2>Şifre Sıfırla</h2>
+        <input type="email" id="reset-email" placeholder="E-posta">
+        <button onclick="resetPass()">Link Gönder</button>
+        <p><a href="#" onclick="switchAuth('login')">Geri Dön</a></p>
+    </div>
+</div>
+
+<div id="profile-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+        <h3>Profil Ayarları</h3>
+        <label style="font-size: 0.8rem; color: #666;">Profil Fotoğrafı URL</label>
+        <input type="text" id="p-img" placeholder="https://resim-linki.com/foto.jpg">
+        <label style="font-size: 0.8rem; color: #666;">İsim Güncelle</label>
+        <input type="text" id="p-name" placeholder="Yeni İsminiz">
+        <button onclick="updateProfile()">Kaydet ve Kapat</button>
+        <button onclick="toggleProfile(false)" style="background:#64748b;">Vazgeç</button>
+        <hr style="margin:20px 0; opacity:0.2;">
+        <button onclick="auth.signOut().then(()=>location.reload())" style="background:#f43f5e;">Güvenli Çıkış Yap</button>
+    </div>
+</div>
+
+<div id="main-ui" class="hidden">
+    <div class="navbar">
+        <div class="nav-user" onclick="toggleProfile(true)">
+            <img id="nav-avatar" class="avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+            <div id="welcome-text" style="font-weight: 800; color: var(--p);">Yükleniyor...</div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>👥 Kimler Burada?</h3>
+            <div style="margin-bottom: 10px;">
+                <span class="status-badge" onclick="updateStatus('🏠 Evde')">Evde</span>
+                <span class="status-badge" onclick="updateStatus('🚗 Yolda')">Yolda</span>
+                <span class="status-badge" onclick="updateStatus('🏢 Dışarıda')">Dışarıda</span>
+            </div>
+            <div id="user-list"></div>
+        </div>
+
+        <div class="card">
+            <h3>💬 Aile Sohbeti</h3>
+            <div id="chat-box"></div>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="chatInp" placeholder="Mesaj yaz..." onkeypress="if(event.key==='Enter') sendChat()">
+                <button onclick="sendChat()" style="width:50px">></button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>📅 Özel Günler</h3>
+            <div id="event-list" style="margin-bottom:10px;"></div>
+            <input type="text" id="evName" placeholder="Etkinlik Adı">
+            <input type="date" id="evDate">
+            <button onclick="addEvent()">Takvime Ekle</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyD2ESoJXY1Ue3_guJ_V2AW-XaG039FRdOQ",
+        authDomain: "family-46cfe.firebaseapp.com",
+        projectId: "family-46cfe",
+        storageBucket: "family-46cfe.firebasestorage.app",
+        messagingSenderId: "153626200125",
+        appId: "1:153626200125:web:47818655b39207a93b4254"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    function switchAuth(box) {
+        document.getElementById('login-box').classList.add('hidden');
+        document.getElementById('reg-box').classList.add('hidden');
+        document.getElementById('reset-box').classList.add('hidden');
+        document.getElementById(box + '-box').classList.remove('hidden');
+    }
+
+    function toggleProfile(show) {
+        document.getElementById('profile-modal').classList.toggle('hidden', !show);
+    }
+
+    // --- AUTH ---
+    async function register() {
+        const n = document.getElementById('r-name').value;
+        const e = document.getElementById('r-email').value;
+        const p = document.getElementById('r-pass').value;
+        try {
+            const res = await auth.createUserWithEmailAndPassword(e, p);
+            await db.collection("users").doc(res.user.uid).set({ 
+                name: n, 
+                img: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+                status: "Yeni Üye", 
+                lastSeen: Date.now() 
+            });
+        } catch(err) { alert(err.message); }
+    }
+
+    function login() {
+        auth.signInWithEmailAndPassword(document.getElementById('l-email').value, document.getElementById('l-pass').value).catch(alert);
+    }
+
+    function resetPass() {
+        auth.sendPasswordResetEmail(document.getElementById('reset-email').value).then(() => alert("E-posta gönderildi!")).catch(alert);
+    }
+
+    // --- DASHBOARD ---
+    auth.onAuthStateChanged(user => {
+        if(user) {
+            document.getElementById('auth-section').classList.add('hidden');
+            document.getElementById('main-ui').classList.remove('hidden');
+            startApp(user);
+        }
+    });
+
+    function startApp(user) {
+        db.collection("users").doc(user.uid).onSnapshot(doc => {
+            if(doc.exists) {
+                const data = doc.data();
+                document.getElementById('welcome-text').innerText = data.name;
+                document.getElementById('nav-avatar').src = data.img;
+                document.getElementById('p-name').value = data.name;
+                document.getElementById('p-img').value = data.img;
+            }
+        });
+
+        db.collection("users").onSnapshot(ss => {
+            const list = document.getElementById('user-list');
+            list.innerHTML = '';
+            ss.forEach(doc => {
+                const d = doc.data();
+                const online = (Date.now() - d.lastSeen) < 120000;
+                list.innerHTML += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f8fafc;">
+                    <span><span class="${online ? 'online-dot' : ''}" style="background:${online?'#22c55e':'#cbd5e1'}"></span>${d.name}</span>
+                    <span style="font-size:0.75rem; color:#64748b;">${d.status}</span>
+                </div>`;
+            });
+        });
+
+        db.collection("messages").orderBy("ts", "asc").onSnapshot(ss => {
+            const box = document.getElementById('chat-box'); box.innerHTML = '';
+            ss.forEach(doc => {
+                const d = doc.data();
+                box.innerHTML += `<div class="chat-msg">
+                    <img src="${d.img || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+                    <div class="msg-content"><b>${d.u}</b>${d.m}</div>
+                </div>`;
+            });
+            box.scrollTop = box.scrollHeight;
+        });
+
+        db.collection("events").orderBy("date").onSnapshot(ss => {
+            const list = document.getElementById('event-list'); list.innerHTML = '';
+            ss.forEach(doc => {
+                list.innerHTML += `<div style="font-size:0.85rem; margin-bottom:5px;">🗓️ ${doc.data().date} - ${doc.data().name} <span onclick="db.collection('events').doc('${doc.id}').delete()" style="color:red; cursor:pointer">X</span></div>`;
+            });
+        });
+
+        setInterval(() => { db.collection("users").doc(user.uid).update({ lastSeen: Date.now() }); }, 60000);
+    }
+
+    // --- ACTIONS ---
+    function updateProfile() {
+        const name = document.getElementById('p-name').value;
+        const img = document.getElementById('p-img').value;
+        db.collection("users").doc(auth.currentUser.uid).update({ name, img }).then(() => {
+            toggleProfile(false);
+            alert("Profil güncellendi!");
+        });
+    }
+
+    function sendChat() {
+        const m = document.getElementById('chatInp').value;
+        if(!m) return;
+        db.collection("users").doc(auth.currentUser.uid).get().then(doc => {
+            const d = doc.data();
+            db.collection("messages").add({ u: d.name, img: d.img, m, ts: firebase.firestore.FieldValue.serverTimestamp() });
+        });
+        document.getElementById('chatInp').value = '';
+    }
+
+    function updateStatus(s) { db.collection("users").doc(auth.currentUser.uid).update({ status: s, lastSeen: Date.now() }); }
+    function addEvent() { 
+        const name = document.getElementById('evName').value; 
+        const date = document.getElementById('evDate').value;
+        if(name && date) db.collection("events").add({ name, date });
+    }
+</script>
+</body>
+</html>
