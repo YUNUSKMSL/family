@@ -15,7 +15,7 @@
         .hidden { display: none !important; }
         
         /* Navbar & Profil */
-        .navbar { background: white; padding: 10px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; sticky; top:0; z-index:10; }
+        .navbar { background: white; padding: 10px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; position: sticky; top:0; z-index:10; }
         .nav-user { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px 10px; border-radius: 12px; transition: 0.2s; }
         .nav-user:hover { background: #f1f5f9; }
         .avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; background: #ddd; border: 2px solid var(--p); }
@@ -24,17 +24,20 @@
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; padding: 20px; max-width: 1200px; margin: 0 auto; }
         .card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
         
-        /* Auth & Profile Modal */
+        /* Modals */
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .auth-card, .modal-card { background: var(--card); padding: 35px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 400px; }
         
         input { width: 100%; padding: 12px; margin: 10px 0; border: 1.5px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; font-family: inherit; }
         button { background: var(--p); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; margin-top: 5px; }
         
+        /* Info Box (Spam Uyarısı İçin) */
+        .info-box { background: #eef2ff; color: #4338ca; padding: 12px; border-radius: 12px; font-size: 0.85rem; margin-top: 15px; border: 1px dashed #c7d2fe; }
+
         /* Chat */
         #chat-box { height: 250px; overflow-y: auto; background: #f8fafc; border-radius: 12px; padding: 10px; margin-bottom: 10px; }
         .chat-msg { margin-bottom: 10px; display: flex; gap: 10px; align-items: flex-start; }
-        .chat-msg img { width: 30px; height: 30px; border-radius: 50%; }
+        .chat-msg img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
         .msg-content { background: white; padding: 8px 12px; border-radius: 12px; font-size: 0.9rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
         .msg-content b { color: var(--p); font-size: 0.75rem; display: block; }
 
@@ -65,8 +68,11 @@
     </div>
     <div id="reset-box" class="auth-card hidden">
         <h2>Şifre Sıfırla</h2>
-        <input type="email" id="reset-email" placeholder="E-posta">
-        <button onclick="resetPass()">Link Gönder</button>
+        <input type="email" id="reset-email" placeholder="E-posta adresiniz">
+        <button onclick="resetPass()">Sıfırlama Linki Gönder</button>
+        <div id="reset-spam-warn" class="info-box hidden">
+            📩 E-posta gönderildi! Gelen kutusunda bulamazsanız lütfen <b>Spam (Gereksiz)</b> klasörünü kontrol edin.
+        </div>
         <p><a href="#" onclick="switchAuth('login')">Geri Dön</a></p>
     </div>
 </div>
@@ -75,7 +81,7 @@
     <div class="modal-card">
         <h3>Profil Ayarları</h3>
         <label style="font-size: 0.8rem; color: #666;">Profil Fotoğrafı URL</label>
-        <input type="text" id="p-img" placeholder="https://resim-linki.com/foto.jpg">
+        <input type="text" id="p-img" placeholder="https://site.com/foto.jpg">
         <label style="font-size: 0.8rem; color: #666;">İsim Güncelle</label>
         <input type="text" id="p-name" placeholder="Yeni İsminiz">
         <button onclick="updateProfile()">Kaydet ve Kapat</button>
@@ -88,7 +94,7 @@
 <div id="main-ui" class="hidden">
     <div class="navbar">
         <div class="nav-user" onclick="toggleProfile(true)">
-            <img id="nav-avatar" class="avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+            <img id="nav-avatar" class="avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
             <div id="welcome-text" style="font-weight: 800; color: var(--p);">Yükleniyor...</div>
         </div>
     </div>
@@ -137,10 +143,13 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
+    const defAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
     function switchAuth(box) {
         document.getElementById('login-box').classList.add('hidden');
         document.getElementById('reg-box').classList.add('hidden');
         document.getElementById('reset-box').classList.add('hidden');
+        document.getElementById('reset-spam-warn').classList.add('hidden'); // Uyarıyı sıfırla
         document.getElementById(box + '-box').classList.remove('hidden');
     }
 
@@ -153,11 +162,12 @@
         const n = document.getElementById('r-name').value;
         const e = document.getElementById('r-email').value;
         const p = document.getElementById('r-pass').value;
+        if(!n || !e || p.length < 6) return alert("Lütfen bilgileri eksiksiz doldurun!");
         try {
             const res = await auth.createUserWithEmailAndPassword(e, p);
             await db.collection("users").doc(res.user.uid).set({ 
                 name: n, 
-                img: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+                img: defAvatar,
                 status: "Yeni Üye", 
                 lastSeen: Date.now() 
             });
@@ -168,8 +178,15 @@
         auth.signInWithEmailAndPassword(document.getElementById('l-email').value, document.getElementById('l-pass').value).catch(alert);
     }
 
+    // GÜNCELLENMİŞ ŞİFRE SIFIRLAMA
     function resetPass() {
-        auth.sendPasswordResetEmail(document.getElementById('reset-email').value).then(() => alert("E-posta gönderildi!")).catch(alert);
+        const email = document.getElementById('reset-email').value;
+        if(!email) return alert("Lütfen e-posta adresinizi yazın!");
+        
+        auth.sendPasswordResetEmail(email).then(() => {
+            // Alert yerine UI üzerinde bilgilendirme yapıyoruz
+            document.getElementById('reset-spam-warn').classList.remove('hidden');
+        }).catch(err => alert("Hata: " + err.message));
     }
 
     // --- DASHBOARD ---
@@ -186,7 +203,9 @@
             if(doc.exists) {
                 const data = doc.data();
                 document.getElementById('welcome-text').innerText = data.name;
-                document.getElementById('nav-avatar').src = data.img;
+                // Resim kontrolü
+                const userImg = data.img || defAvatar;
+                document.getElementById('nav-avatar').src = userImg;
                 document.getElementById('p-name').value = data.name;
                 document.getElementById('p-img').value = data.img;
             }
@@ -210,7 +229,7 @@
             ss.forEach(doc => {
                 const d = doc.data();
                 box.innerHTML += `<div class="chat-msg">
-                    <img src="${d.img || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'}">
+                    <img src="${d.img || defAvatar}" onerror="this.src='${defAvatar}'">
                     <div class="msg-content"><b>${d.u}</b>${d.m}</div>
                 </div>`;
             });
