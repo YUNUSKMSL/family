@@ -2,255 +2,343 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>İş Takip - Ekip Sistemi</title>
+<title>İş Takip Sistemi - Ekip</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-    :root { --primary: #0066cc; }
-    body { font-family: Arial, sans-serif; margin:0; background:#f4f4f4; }
-    .container { max-width: 1100px; margin: auto; }
-    header { background: var(--primary); color: white; padding: 15px; text-align: center; }
-    .login { max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); text-align: center; }
-    input, select, button { padding: 12px; margin: 10px 0; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 16px; }
-    button { background: var(--primary); color: white; border: none; cursor: pointer; }
-    button:hover { background: #0055aa; }
-    .tab { display: flex; background: #ddd; }
-    .tab button { flex:1; padding:15px; background:none; border:none; font-weight:bold; }
-    .tab button.active { background:white; border-bottom:3px solid var(--primary); }
-    .section { display:none; padding:20px; background:white; margin:10px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.1); }
-    .section.active { display:block; }
-    table { width:100%; border-collapse:collapse; margin-top:20px; }
-    th, td { padding:12px; text-align:left; border-bottom:1px solid #ddd; }
-    th { background:#f0f0f0; }
-    .status-at { color:#0066cc; font-weight:bold; }
-    .status-yap { color:#28a745; font-weight:bold; }
-    .status-ert { color:#ffc107; font-weight:bold; }
-    .status-rek { color:#dc3545; font-weight:bold; }
-    .report-box { background:#f8f9fa; padding:20px; border-radius:8px; margin-top:20px; }
+    :root {
+        --primary: #1e40af;
+        --primary-dark: #1e3a8a;
+        --success: #16a34a;
+        --warning: #ca8a04;
+        --danger: #dc2626;
+        --light: #f3f4f6;
+        --gray: #6b7280;
+    }
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--light);
+        color: #111827;
+    }
+    header {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    .login-container {
+        max-width: 420px;
+        margin: 80px auto;
+        background: white;
+        padding: 2.5rem;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+    input, textarea, select, button {
+        width: 100%;
+        padding: 0.9rem 1rem;
+        margin: 0.6rem 0;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 1rem;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    button:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    .tab-bar {
+        display: flex;
+        background: white;
+        border-bottom: 1px solid #e5e7eb;
+        margin: 1rem 0;
+    }
+    .tab-btn {
+        flex: 1;
+        padding: 1rem;
+        background: none;
+        border: none;
+        font-weight: 600;
+        color: var(--gray);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .tab-btn.active {
+        color: var(--primary);
+        border-bottom: 3px solid var(--primary);
+    }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .job-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.2rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 5px solid var(--primary);
+    }
+    .job-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; }
+    .job-type { font-weight: 700; color: var(--primary); }
+    .job-date { color: var(--gray); font-size: 0.9rem; }
+    .job-desc { margin: 0.8rem 0; color: #374151; white-space: pre-wrap; }
+    .status {
+        padding: 0.35rem 0.9rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .status-atanan { background: #dbeafe; color: #1e40af; }
+    .status-yapilan { background: #dcfce7; color: var(--success); }
+    .status-ertelenen { background: #fef3c7; color: var(--warning); }
+    .status-rek { background: #fee2e2; color: var(--danger); }
+
+    .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .actions button {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+        border-radius: 6px;
+    }
+    .btn-complete { background: var(--success); }
+    .btn-ertel { background: var(--warning); }
+    .btn-rek { background: var(--danger); }
+    .btn-delete { background: #6b7280; }
+
+    .report-panel {
+        background: white;
+        padding: 1.8rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .report-stats p {
+        font-size: 1.1rem;
+        margin: 0.8rem 0;
+        padding: 0.6rem;
+        border-radius: 8px;
+    }
+    .report-stats strong { color: var(--primary); }
+
+    @media (max-width: 600px) {
+        .login-container { margin: 40px 1rem; padding: 1.8rem; }
+        .actions { flex-direction: column; }
+    }
 </style>
 </head>
 <body>
 
 <header>
-    <h1>🏗️ İş Takip Sistemi</h1>
+    <h1>🏗️ Ekip İş Takip Sistemi</h1>
 </header>
 
-<div id="loginScreen" class="login">
+<div id="login" class="login-container">
     <h2>Ekip Kodu ile Giriş</h2>
-    <input type="text" id="teamCode" placeholder="Ekip Kodu (örn: 06EVB104)" autofocus>
-    <button onclick="login()">Giriş Yap</button>
+    <input type="text" id="teamCode" placeholder="Örn: 06EVB104" autofocus style="text-transform: uppercase;">
+    <button onclick="girisYap()">Giriş Yap</button>
 </div>
 
-<div id="app" style="display:none;">
+<div id="mainApp" style="display:none;">
     <div class="container">
-        <div style="padding:15px; background:white; display:flex; justify-content:space-between; align-items:center;">
-            <h2>Ekip: <span id="teamName" style="color:#0066cc;"></span></h2>
-            <button onclick="logout()">Çıkış</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:1.5rem 0; background:white; padding:1rem; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+            <h2>Ekip: <span id="ekipAdi" style="color:var(--primary);"></span></h2>
+            <button onclick="cikisYap()" style="background:#6b7280;">Çıkış</button>
         </div>
 
-        <div class="tab">
-            <button class="active" onclick="showTab(0)">İşler</button>
-            <button onclick="showTab(1)">Rapor</button>
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="tabGoster(0)">İş Listesi</button>
+            <button class="tab-btn" onclick="tabGoster(1)">Günlük Rapor</button>
         </div>
 
-        <!-- İşler Sekmesi -->
         <div id="tab0" class="section active">
-            <h3>Yeni İş Ekle</h3>
-            <select id="jobType">
-                <option value="FTTH Kurulum">FTTH Kurulum</option>
-                <option value="FTTH Arıza">FTTH Arıza</option>
-                <option value="IPTV Kurulum">IPTV Kurulum</option>
-                <option value="IPTV Arıza">IPTV Arıza</option>
-                <option value="Ses Kurulum">Ses Kurulum</option>
-                <option value="Ses Arıza">Ses Arıza</option>
-                <option value="Harici">Harici</option>
-            </select>
-            <input type="date" id="jobDate">
-            <button onclick="addJob()">İş Ekle</button>
+            <div style="background:white; padding:1.5rem; border-radius:12px; margin-bottom:1.5rem; box-shadow:0 2px 10px rgba(0,0,0,0.08);">
+                <h3>Yeni İş Ekle</h3>
+                <select id="isTipi">
+                    <option value="FTTH Kurulum">FTTH Kurulum</option>
+                    <option value="FTTH Arıza">FTTH Arıza</option>
+                    <option value="IPTV Kurulum">IPTV Kurulum</option>
+                    <option value="IPTV Arıza">IPTV Arıza</option>
+                    <option value="Ses Kurulum">Ses Kurulum</option>
+                    <option value="Ses Arıza">Ses Arıza</option>
+                    <option value="Harici">Harici</option>
+                </select>
+                <input type="date" id="isTarihi">
+                <textarea id="isAciklama" placeholder="İş açıklaması / adres / notlar..."></textarea>
+                <button onclick="isEkle()">Ekle</button>
+            </div>
 
-            <h3 style="margin-top:30px;">İş Listesi</h3>
-            <table id="jobsTable">
-                <thead>
-                    <tr>
-                        <th>Tarih</th>
-                        <th>Tip</th>
-                        <th>Durum</th>
-                        <th>İşlem</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+            <h3 style="margin:1.5rem 0 1rem;">İşler</h3>
+            <div id="isListesi"></div>
         </div>
 
-        <!-- Rapor Sekmesi -->
         <div id="tab1" class="section">
-            <h3>Rapor Oluştur</h3>
-            <input type="date" id="reportDate">
-            <button onclick="generateReport()">Rapor Göster</button>
-
-            <div id="reportResult" class="report-box" style="display:none;"></div>
+            <div class="report-panel">
+                <h3>Rapor Oluştur</h3>
+                <input type="date" id="raporTarihi">
+                <button onclick="raporOlustur()">Göster</button>
+                <div id="raporIcerik" style="margin-top:1.5rem;"></div>
+            </div>
         </div>
     </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<!-- Firebase v9 Modular SDK -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getDatabase, ref, push, set, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
-<script>
-// ==================== Firebase Config ====================
-// BURAYI KENDİ CONFIG'İNLE DEĞİŞTİR !!!
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "your-project.firebaseapp.com",
-    databaseURL: "https://your-project-default-rtdb.firebaseio.com",
-    projectId: "your-project",
-    storageBucket: "your-project.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "1:123456789:web:abcdef123456"
-};
-// ========================================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyD2ESoJXY1Ue3_guJ_V2AW-XaG039FRdOQ",
+        authDomain: "family-46cfe.firebaseapp.com",
+        projectId: "family-46cfe",
+        storageBucket: "family-46cfe.firebasestorage.app",
+        messagingSenderId: "153626200125",
+        appId: "1:153626200125:web:47818655b39207a93b4254",
+        measurementId: "G-55RKG43K43",
+        databaseURL: "https://family-46cfe-default-rtdb.firebaseio.com/"   // ← Bunu ekledim!
+    };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-let currentTeam = "";
-let jobsRef = null;
-let daysRef = null;
+    let currentEkip = "";
+    let ekipJobsRef = null;
 
-function login() {
-    currentTeam = document.getElementById("teamCode").value.trim().toUpperCase();
-    if (!currentTeam) return alert("Ekip kodu gir!");
+    function girisYap() {
+        currentEkip = document.getElementById("teamCode").value.trim().toUpperCase();
+        if (!currentEkip) return alert("Ekip kodu gir lütfen!");
 
-    document.getElementById("loginScreen").style.display = "none";
-    document.getElementById("app").style.display = "block";
-    document.getElementById("teamName").textContent = currentTeam;
+        document.getElementById("login").style.display = "none";
+        document.getElementById("mainApp").style.display = "block";
+        document.getElementById("ekipAdi").textContent = currentEkip;
 
-    jobsRef = db.ref("teams/" + currentTeam + "/jobs");
-    daysRef = db.ref("teams/" + currentTeam + "/days");
+        ekipJobsRef = ref(db, `teams/${currentEkip}/jobs`);
 
-    loadJobs();
-}
-
-function logout() {
-    location.reload();
-}
-
-function showTab(n) {
-    document.querySelectorAll('.tab button').forEach((b,i) => b.classList.toggle('active', i===n));
-    document.querySelectorAll('.section').forEach((s,i) => s.classList.toggle('active', i===n));
-}
-
-// İş Ekle
-function addJob() {
-    const type = document.getElementById("jobType").value;
-    let date = document.getElementById("jobDate").value;
-    if (!date) date = new Date().toISOString().split('T')[0];
-
-    const newJobRef = jobsRef.push();
-    newJobRef.set({
-        id: newJobRef.key,
-        type: type,
-        date: date,
-        status: "Atanan",
-        timestamp: Date.now()
-    });
-
-    alert("İş eklendi!");
-}
-
-// İşleri Yükle
-function loadJobs() {
-    jobsRef.on("value", snapshot => {
-        const tbody = document.querySelector("#jobsTable tbody");
-        tbody.innerHTML = "";
-
-        snapshot.forEach(child => {
-            const job = child.val();
-            const tr = document.createElement("tr");
-
-            let statusClass = "";
-            if (job.status === "Yapılan") statusClass = "status-yap";
-            else if (job.status === "Ertelenen") statusClass = "status-ert";
-            else if (job.status === "Reklamasyon") statusClass = "status-rek";
-            else statusClass = "status-at";
-
-            tr.innerHTML = `
-                <td>${job.date}</td>
-                <td>${job.type}</td>
-                <td class="${statusClass}">${job.status}</td>
-                <td>
-                    <button onclick="changeStatus('${job.id}', 'Yapılan')">✔ Tamamla</button>
-                    <button onclick="changeStatus('${job.id}', 'Ertelenen')">⏳ Ertele</button>
-                    <button onclick="changeStatus('${job.id}', 'Reklamasyon')">❌ Reklamasyon</button>
-                    <button onclick="deleteJob('${job.id}')">🗑 Sil</button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-    });
-}
-
-function changeStatus(jobId, newStatus) {
-    jobsRef.child(jobId).update({ status: newStatus });
-}
-
-function deleteJob(jobId) {
-    if (confirm("Bu işi silmek istediğine emin misin?")) {
-        jobsRef.child(jobId).remove();
+        yukleIsler();
     }
-}
 
-// Rapor
-function generateReport() {
-    const date = document.getElementById("reportDate").value;
-    if (!date) return alert("Tarih seç!");
+    function cikisYap() { location.reload(); }
 
-    jobsRef.once("value").then(snapshot => {
-        let total = 0, yapilan = 0, kalan = 0, ertelenen = 0, reklamasyon = 0;
+    function tabGoster(n) {
+        document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===n));
+        document.querySelectorAll('.section').forEach((s,i)=>s.classList.toggle('active',i===n));
+    }
 
-        snapshot.forEach(child => {
-            const j = child.val();
-            if (j.date === date) {
-                total++;
-                if (j.status === "Yapılan") yapilan++;
-                else if (j.status === "Atanan") kalan++;
-                else if (j.status === "Ertelenen") ertelenen++;
-                else if (j.status === "Reklamasyon") reklamasyon++;
-            }
+    function isEkle() {
+        const tip = document.getElementById("isTipi").value;
+        let tarih = document.getElementById("isTarihi").value;
+        const aciklama = document.getElementById("isAciklama").value.trim();
+
+        if (!tarih) tarih = new Date().toISOString().split('T')[0];
+
+        const yeniIsRef = push(ekipJobsRef);
+        set(yeniIsRef, {
+            tip,
+            tarih,
+            aciklama,
+            durum: "Atanan",
+            olusturulma: Date.now()
         });
 
-        daysRef.child(date).once("value").then(daySnap => {
-            const dayData = daySnap.val() || { start: "??:??", end: "??:??" };
+        document.getElementById("isAciklama").value = "";
+        alert("İş eklendi!");
+    }
+
+    function yukleIsler() {
+        onValue(ekipJobsRef, (snap) => {
+            const liste = document.getElementById("isListesi");
+            liste.innerHTML = "";
+
+            if (!snap.exists()) {
+                liste.innerHTML = "<p style='text-align:center;color:var(--gray);'>Henüz iş eklenmemiş.</p>";
+                return;
+            }
+
+            const isler = snap.val();
+            Object.entries(isler).forEach(([id, is]) => {
+                const card = document.createElement("div");
+                card.className = "job-card";
+
+                let statusClass = `status-${is.durum.toLowerCase().replace("ı","i").replace("ş","s")}`;
+                if (is.durum === "Atanan") statusClass = "status-atanan";
+                if (is.durum === "Yapılan") statusClass = "status-yapilan";
+                if (is.durum === "Ertelenen") statusClass = "status-ertelenen";
+                if (is.durum === "Reklamasyon") statusClass = "status-rek";
+
+                card.innerHTML = `
+                    <div class="job-header">
+                        <span class="job-type">${is.tip}</span>
+                        <span class="job-date">${is.tarih}</span>
+                    </div>
+                    <div class="status ${statusClass}">${is.durum}</div>
+                    ${is.aciklama ? `<div class="job-desc">${is.aciklama}</div>` : ''}
+                    <div class="actions">
+                        <button class="btn-complete" onclick="durumDegistir('${id}', 'Yapılan')">✔ Tamamlandı</button>
+                        <button class="btn-ertel" onclick="durumDegistir('${id}', 'Ertelenen')">⏳ Ertele</button>
+                        <button class="btn-rek" onclick="durumDegistir('${id}', 'Reklamasyon')">❌ Reklamasyon</button>
+                        <button class="btn-delete" onclick="isSil('${id}')">🗑 Sil</button>
+                    </div>
+                `;
+                liste.appendChild(card);
+            });
+        });
+    }
+
+    function durumDegistir(id, yeniDurum) {
+        const isRef = ref(db, `teams/${currentEkip}/jobs/${id}`);
+        update(isRef, { durum: yeniDurum });
+    }
+
+    function isSil(id) {
+        if (!confirm("Bu işi kalıcı olarak silmek istiyor musun?")) return;
+        const isRef = ref(db, `teams/${currentEkip}/jobs/${id}`);
+        remove(isRef);
+    }
+
+    function raporOlustur() {
+        const tarih = document.getElementById("raporTarihi").value;
+        if (!tarih) return alert("Tarih seç!");
+
+        onValue(ekipJobsRef, (snap) => {
+            if (!snap.exists()) return;
+
+            let toplam = 0, yapilan = 0, kalan = 0, ertelenen = 0, reklamasyon = 0;
+
+            snap.forEach(child => {
+                const j = child.val();
+                if (j.tarih === tarih) {
+                    toplam++;
+                    if (j.durum === "Yapılan") yapilan++;
+                    else if (j.durum === "Atanan") kalan++;
+                    else if (j.durum === "Ertelenen") ertelenen++;
+                    else if (j.durum === "Reklamasyon") reklamasyon++;
+                }
+            });
 
             const html = `
-                <h2>${date} Raporu</h2>
-                <p><strong>Kontak:</strong> ${dayData.start} / ${dayData.end}</p>
-                <p><strong>Atanan İş:</strong> ${total}</p>
-                <p><strong>Yapılan:</strong> ${yapilan}</p>
-                <p><strong>Kalan:</strong> ${kalan}</p>
-                <p><strong>Ertelenen:</strong> ${ertelenen}</p>
-                <p><strong>Reklamasyon:</strong> ${reklamasyon}</p>
-                <hr>
-                <small>Kontak saatini değiştirmek istersen aşağıdan düzenle:</small><br>
-                <input type="time" id="startTime" value="${dayData.start}">
-                <input type="time" id="endTime" value="${dayData.end}">
-                <button onclick="saveContact('${date}')">Kontak Kaydet</button>
+                <h3 style="margin-bottom:1rem;">${tarih} Günlük Rapor</h3>
+                <div class="report-stats">
+                    <p><strong>Atanan İş:</strong> ${toplam}</p>
+                    <p><strong>Yapılan:</strong> ${yapilan}</p>
+                    <p><strong>Kalan:</strong> ${kalan}</p>
+                    <p><strong>Ertelenen:</strong> ${ertelenen}</p>
+                    <p><strong>Reklamasyon:</strong> ${reklamasyon}</p>
+                </div>
             `;
 
-            document.getElementById("reportResult").innerHTML = html;
-            document.getElementById("reportResult").style.display = "block";
-        });
-    });
-}
+            document.getElementById("raporIcerik").innerHTML = html;
+        }, {onlyOnce: true});
+    }
 
-function saveContact(date) {
-    const start = document.getElementById("startTime").value;
-    const end = document.getElementById("endTime").value;
-    daysRef.child(date).set({ start, end });
-    alert("Kontak saatleri kaydedildi!");
-}
-
-// Bugünün tarihini varsayılan yap
-document.getElementById("jobDate").value = new Date().toISOString().split('T')[0];
-document.getElementById("reportDate").value = new Date().toISOString().split('T')[0];
+    // Varsayılan tarihler
+    const bugun = new Date().toISOString().split('T')[0];
+    document.getElementById("isTarihi").value = bugun;
+    document.getElementById("raporTarihi").value = bugun;
 </script>
 </body>
 </html>
