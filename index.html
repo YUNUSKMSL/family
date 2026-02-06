@@ -5,149 +5,51 @@
 <title>İş Takip Sistemi - Ekip</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-    :root {
-        --primary: #1e40af;
-        --primary-dark: #1e3a8a;
-        --success: #16a34a;
-        --warning: #ca8a04;
-        --danger: #dc2626;
-        --light: #f3f4f6;
-        --gray: #6b7280;
-    }
-    * { box-sizing: border-box; margin:0; padding:0; }
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: var(--light);
-        color: #111827;
-    }
-    header {
-        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-        color: white;
-        padding: 1.5rem;
-        text-align: center;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    }
-    .login-container {
-        max-width: 420px;
-        margin: 80px auto;
-        background: white;
-        padding: 2.5rem;
-        border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-    }
-    .container { max-width: 1100px; margin: 0 auto; padding: 1rem; }
-    input, textarea, select, button {
-        width: 100%;
-        padding: 0.9rem 1rem;
-        margin: 0.6rem 0;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 1rem;
-    }
-    textarea { min-height: 90px; resize: vertical; }
-    button {
-        background: var(--primary);
-        color: white;
-        border: none;
-        cursor: pointer;
-        font-weight: 600;
-        transition: all 0.2s;
-    }
-    button:hover { background: var(--primary-dark); transform: translateY(-1px); }
-    .tab-bar {
-        display: flex;
-        background: white;
-        border-bottom: 1px solid #e5e7eb;
-        margin: 1rem 0;
-    }
-    .tab-btn {
-        flex: 1;
-        padding: 1rem;
-        background: none;
-        border: none;
-        font-weight: 600;
-        color: var(--gray);
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .tab-btn.active {
-        color: var(--primary);
-        border-bottom: 3px solid var(--primary);
-    }
-    .section { display: none; }
-    .section.active { display: block; }
-
-    .job-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.2rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        border-left: 5px solid var(--primary);
-    }
-    .job-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; }
-    .job-type { font-weight: 700; color: var(--primary); }
-    .job-date { color: var(--gray); font-size: 0.9rem; }
-    .job-desc { margin: 0.8rem 0; color: #374151; white-space: pre-wrap; }
-    .status {
-        padding: 0.35rem 0.9rem;
-        border-radius: 999px;
-        font-size: 0.85rem;
-        font-weight: 600;
-    }
-    .status-atanan { background: #dbeafe; color: #1e40af; }
-    .status-yapilan { background: #dcfce7; color: var(--success); }
-    .status-ertelenen { background: #fef3c7; color: var(--warning); }
-    .status-rek { background: #fee2e2; color: var(--danger); }
-
-    .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
-    .actions button {
-        padding: 0.6rem 1rem;
-        font-size: 0.9rem;
-        border-radius: 6px;
-    }
-    .btn-complete { background: var(--success); }
-    .btn-ertel { background: var(--warning); }
-    .btn-rek { background: var(--danger); }
-    .btn-delete { background: #6b7280; }
-
-    .report-panel {
-        background: white;
-        padding: 1.8rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-    .report-stats p {
-        font-size: 1.1rem;
-        margin: 0.8rem 0;
-        padding: 0.6rem;
-        border-radius: 8px;
-    }
-    .report-stats strong { color: var(--primary); }
-
-    @media (max-width: 600px) {
-        .login-container { margin: 40px 1rem; padding: 1.8rem; }
-        .actions { flex-direction: column; }
-    }
+    /* Önceki stil aynı kalıyor, kısalttım burayı – istersen önceki mesajdan kopyala */
+    :root { --primary: #1e40af; --success: #16a34a; --warning: #ca8a04; --danger: #dc2626; --light: #f3f4f6; --gray: #6b7280; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--light); margin:0; }
+    header { background: linear-gradient(135deg, var(--primary), #1e3a8a); color:white; padding:1.5rem; text-align:center; }
+    .login-container { max-width:420px; margin:80px auto; background:white; padding:2.5rem; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.12); }
+    .container { max-width:1100px; margin:auto; padding:1rem; }
+    input, textarea, select, button { width:100%; padding:0.9rem; margin:0.6rem 0; border:1px solid #d1d5db; border-radius:8px; }
+    textarea { min-height:90px; }
+    button { background:var(--primary); color:white; border:none; cursor:pointer; font-weight:600; }
+    button:hover { background:#1e3a8a; }
+    .tab-bar { display:flex; background:white; border-bottom:1px solid #e5e7eb; margin:1rem 0; }
+    .tab-btn { flex:1; padding:1rem; border:none; background:none; font-weight:600; color:var(--gray); cursor:pointer; }
+    .tab-btn.active { color:var(--primary); border-bottom:3px solid var(--primary); }
+    .section { display:none; }
+    .section.active { display:block; }
+    .job-card { background:white; border-radius:12px; padding:1.2rem; margin-bottom:1rem; box-shadow:0 2px 8px rgba(0,0,0,0.08); border-left:5px solid var(--primary); }
+    .status { padding:0.35rem 0.9rem; border-radius:999px; font-size:0.85rem; font-weight:600; display:inline-block; }
+    .status-atanan { background:#dbeafe; color:#1e40af; }
+    .status-yapilan { background:#dcfce7; color:var(--success); }
+    .status-ertelenen { background:#fef3c7; color:var(--warning); }
+    .status-rek { background:#fee2e2; color:var(--danger); }
+    .actions { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:1rem; }
+    .actions button { padding:0.6rem 1rem; font-size:0.9rem; border-radius:6px; color:white; }
+    .btn-complete { background:var(--success); }
+    .btn-ertel { background:var(--warning); }
+    .btn-rek { background:var(--danger); }
+    .btn-delete { background:#6b7280; }
+    .report-panel { background:white; padding:1.8rem; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); }
 </style>
 </head>
 <body>
 
-<header>
-    <h1>🏗️ Ekip İş Takip Sistemi</h1>
-</header>
+<header><h1>🏗️ Ekip İş Takip Sistemi</h1></header>
 
 <div id="login" class="login-container">
     <h2>Ekip Kodu ile Giriş</h2>
-    <input type="text" id="teamCode" placeholder="Örn: 06EVB104" autofocus style="text-transform: uppercase;">
+    <input type="text" id="teamCode" placeholder="Örn: 06EVB104" autofocus style="text-transform:uppercase;">
     <button onclick="girisYap()">Giriş Yap</button>
 </div>
 
 <div id="mainApp" style="display:none;">
     <div class="container">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin:1.5rem 0; background:white; padding:1rem; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:1.5rem 0;background:white;padding:1rem;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
             <h2>Ekip: <span id="ekipAdi" style="color:var(--primary);"></span></h2>
-            <button onclick="cikisYap()" style="background:#6b7280;">Çıkış</button>
+            <button onclick="location.reload()" style="background:#6b7280;">Çıkış</button>
         </div>
 
         <div class="tab-bar">
@@ -156,21 +58,16 @@
         </div>
 
         <div id="tab0" class="section active">
-            <div style="background:white; padding:1.5rem; border-radius:12px; margin-bottom:1.5rem; box-shadow:0 2px 10px rgba(0,0,0,0.08);">
+            <div style="background:white;padding:1.5rem;border-radius:12px;margin-bottom:1.5rem;box-shadow:0 2px 10px rgba(0,0,0,0.08);">
                 <h3>Yeni İş Ekle</h3>
                 <select id="isTipi">
-                    <option value="FTTH Kurulum">FTTH Kurulum</option>
-                    <option value="FTTH Arıza">FTTH Arıza</option>
-                    <option value="IPTV Kurulum">IPTV Kurulum</option>
-                    <option value="IPTV Arıza">IPTV Arıza</option>
-                    <option value="Ses Kurulum">Ses Kurulum</option>
-                    <option value="Harici">Harici</option>
+                    <option>FTTH Kurulum</option><option>FTTH Arıza</option><option>IPTV Kurulum</option>
+                    <option>IPTV Arıza</option><option>Ses Kurulum</option><option>Ses Arıza</option><option>Harici</option>
                 </select>
                 <input type="date" id="isTarihi">
                 <textarea id="isAciklama" placeholder="İş açıklaması / adres / notlar..."></textarea>
                 <button onclick="isEkle()">Ekle</button>
             </div>
-
             <h3 style="margin:1.5rem 0 1rem;">İşler</h3>
             <div id="isListesi"></div>
         </div>
@@ -186,10 +83,10 @@
     </div>
 </div>
 
-<!-- Firebase v9 Modular SDK -->
+<!-- Firebase v10 Modular SDK - Firestore için -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { getDatabase, ref, push, set, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyD2ESoJXY1Ue3_guJ_V2AW-XaG039FRdOQ",
@@ -198,84 +95,73 @@
         storageBucket: "family-46cfe.firebasestorage.app",
         messagingSenderId: "153626200125",
         appId: "1:153626200125:web:47818655b39207a93b4254",
-        measurementId: "G-55RKG43K43",
-        databaseURL: "https://family-46cfe-default-rtdb.firebaseio.com/"   // ← Bunu ekledim!
+        measurementId: "G-55RKG43K43"
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    const db = getFirestore(app);
 
     let currentEkip = "";
-    let ekipJobsRef = null;
 
     function girisYap() {
         currentEkip = document.getElementById("teamCode").value.trim().toUpperCase();
-        if (!currentEkip) return alert("Ekip kodu gir lütfen!");
+        if (!currentEkip) return alert("Ekip kodu gir!");
 
         document.getElementById("login").style.display = "none";
         document.getElementById("mainApp").style.display = "block";
         document.getElementById("ekipAdi").textContent = currentEkip;
 
-        ekipJobsRef = ref(db, `teams/${currentEkip}/jobs`);
-
         yukleIsler();
     }
 
-    function cikisYap() { location.reload(); }
-
     function tabGoster(n) {
-        document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===n));
-        document.querySelectorAll('.section').forEach((s,i)=>s.classList.toggle('active',i===n));
+        document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i===n));
+        document.querySelectorAll('.section').forEach((s,i) => s.classList.toggle('active', i===n));
     }
 
-    function isEkle() {
+    async function isEkle() {
         const tip = document.getElementById("isTipi").value;
-        let tarih = document.getElementById("isTarihi").value;
+        let tarih = document.getElementById("isTarihi").value || new Date().toISOString().split('T')[0];
         const aciklama = document.getElementById("isAciklama").value.trim();
 
-        if (!tarih) tarih = new Date().toISOString().split('T')[0];
-
-        const yeniIsRef = push(ekipJobsRef);
-        set(yeniIsRef, {
-            tip,
-            tarih,
-            aciklama,
-            durum: "Atanan",
-            olusturulma: Date.now()
-        });
-
-        document.getElementById("isAciklama").value = "";
-        alert("İş eklendi!");
+        try {
+            await addDoc(collection(db, `teams/${currentEkip}/jobs`), {
+                tip, tarih, aciklama,
+                durum: "Atanan",
+                olusturulma: Date.now()
+            });
+            document.getElementById("isAciklama").value = "";
+            alert("İş eklendi!");
+        } catch (e) { alert("Hata: " + e.message); }
     }
 
     function yukleIsler() {
-        onValue(ekipJobsRef, (snap) => {
+        const jobsCol = collection(db, `teams/${currentEkip}/jobs`);
+        onSnapshot(jobsCol, (snap) => {
             const liste = document.getElementById("isListesi");
             liste.innerHTML = "";
 
-            if (!snap.exists()) {
-                liste.innerHTML = "<p style='text-align:center;color:var(--gray);'>Henüz iş eklenmemiş.</p>";
+            if (snap.empty) {
+                liste.innerHTML = "<p style='text-align:center;color:var(--gray);'>Henüz iş yok.</p>";
                 return;
             }
 
-            const isler = snap.val();
-            Object.entries(isler).forEach(([id, is]) => {
-                const card = document.createElement("div");
-                card.className = "job-card";
+            snap.forEach((docSnap) => {
+                const is = docSnap.data();
+                const id = docSnap.id;
 
                 let statusClass = `status-${is.durum.toLowerCase().replace("ı","i").replace("ş","s")}`;
                 if (is.durum === "Atanan") statusClass = "status-atanan";
-                if (is.durum === "Yapılan") statusClass = "status-yapilan";
-                if (is.durum === "Ertelenen") statusClass = "status-ertelenen";
-                if (is.durum === "Reklamasyon") statusClass = "status-rek";
 
+                const card = document.createElement("div");
+                card.className = "job-card";
                 card.innerHTML = `
-                    <div class="job-header">
-                        <span class="job-type">${is.tip}</span>
-                        <span class="job-date">${is.tarih}</span>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;">
+                        <span style="font-weight:700;color:var(--primary);">${is.tip}</span>
+                        <span style="color:var(--gray);font-size:0.9rem;">${is.tarih}</span>
                     </div>
                     <div class="status ${statusClass}">${is.durum}</div>
-                    ${is.aciklama ? `<div class="job-desc">${is.aciklama}</div>` : ''}
+                    ${is.aciklama ? `<div style="margin:0.8rem 0;color:#374151;white-space:pre-wrap;">${is.aciklama}</div>` : ''}
                     <div class="actions">
                         <button class="btn-complete" onclick="durumDegistir('${id}', 'Yapılan')">✔ Tamamlandı</button>
                         <button class="btn-ertel" onclick="durumDegistir('${id}', 'Ertelenen')">⏳ Ertele</button>
@@ -288,40 +174,44 @@
         });
     }
 
-    function durumDegistir(id, yeniDurum) {
-        const isRef = ref(db, `teams/${currentEkip}/jobs/${id}`);
-        update(isRef, { durum: yeniDurum });
+    async function durumDegistir(id, yeniDurum) {
+        try {
+            const isRef = doc(db, `teams/${currentEkip}/jobs`, id);
+            await updateDoc(isRef, { durum: yeniDurum });
+        } catch (e) { alert("Durum güncelleme hatası: " + e.message); }
     }
 
-    function isSil(id) {
-        if (!confirm("Bu işi kalıcı olarak silmek istiyor musun?")) return;
-        const isRef = ref(db, `teams/${currentEkip}/jobs/${id}`);
-        remove(isRef);
+    async function isSil(id) {
+        if (!confirm("Silmek istiyor musun?")) return;
+        try {
+            const isRef = doc(db, `teams/${currentEkip}/jobs`, id);
+            await deleteDoc(isRef);
+        } catch (e) { alert("Silme hatası: " + e.message); }
     }
 
-    function raporOlustur() {
+    async function raporOlustur() {
         const tarih = document.getElementById("raporTarihi").value;
         if (!tarih) return alert("Tarih seç!");
 
-        onValue(ekipJobsRef, (snap) => {
-            if (!snap.exists()) return;
+        const jobsCol = collection(db, `teams/${currentEkip}/jobs`);
+        const q = query(jobsCol, where("tarih", "==", tarih));
 
-            let toplam = 0, yapilan = 0, kalan = 0, ertelenen = 0, reklamasyon = 0;
+        try {
+            const snap = await getDocs(q);
+            let toplam=0, yapilan=0, kalan=0, ertelenen=0, reklamasyon=0;
 
-            snap.forEach(child => {
-                const j = child.val();
-                if (j.tarih === tarih) {
-                    toplam++;
-                    if (j.durum === "Yapılan") yapilan++;
-                    else if (j.durum === "Atanan") kalan++;
-                    else if (j.durum === "Ertelenen") ertelenen++;
-                    else if (j.durum === "Reklamasyon") reklamasyon++;
-                }
+            snap.forEach(d => {
+                const j = d.data();
+                toplam++;
+                if (j.durum === "Yapılan") yapilan++;
+                else if (j.durum === "Atanan") kalan++;
+                else if (j.durum === "Ertelenen") ertelenen++;
+                else if (j.durum === "Reklamasyon") reklamasyon++;
             });
 
-            const html = `
-                <h3 style="margin-bottom:1rem;">${tarih} Günlük Rapor</h3>
-                <div class="report-stats">
+            document.getElementById("raporIcerik").innerHTML = `
+                <h3 style="margin-bottom:1rem;">${tarih} Raporu</h3>
+                <div style="font-size:1.1rem;">
                     <p><strong>Atanan İş:</strong> ${toplam}</p>
                     <p><strong>Yapılan:</strong> ${yapilan}</p>
                     <p><strong>Kalan:</strong> ${kalan}</p>
@@ -329,12 +219,9 @@
                     <p><strong>Reklamasyon:</strong> ${reklamasyon}</p>
                 </div>
             `;
-
-            document.getElementById("raporIcerik").innerHTML = html;
-        }, {onlyOnce: true});
+        } catch (e) { alert("Rapor hatası: " + e.message); }
     }
 
-    // Varsayılan tarihler
     const bugun = new Date().toISOString().split('T')[0];
     document.getElementById("isTarihi").value = bugun;
     document.getElementById("raporTarihi").value = bugun;
