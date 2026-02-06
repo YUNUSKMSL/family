@@ -1,279 +1,256 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aile Portalı</title>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
-
-    <style>
-        :root { --p: #4f46e5; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); margin: 0; }
-        .hidden { display: none !important; }
-        
-        /* Navbar & Profil */
-        .navbar { background: white; padding: 10px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; position: sticky; top:0; z-index:10; }
-        .nav-user { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 5px 10px; border-radius: 12px; transition: 0.2s; }
-        .nav-user:hover { background: #f1f5f9; }
-        .avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; background: #ddd; border: 2px solid var(--p); }
-
-        /* Dashboard Grid */
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; padding: 20px; max-width: 1200px; margin: 0 auto; }
-        .card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-        
-        /* Modals */
-        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-        .auth-card, .modal-card { background: var(--card); padding: 35px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 400px; }
-        
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1.5px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; font-family: inherit; }
-        button { background: var(--p); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; margin-top: 5px; }
-        
-        /* Info Box (Spam Uyarısı İçin) */
-        .info-box { background: #eef2ff; color: #4338ca; padding: 12px; border-radius: 12px; font-size: 0.85rem; margin-top: 15px; border: 1px dashed #c7d2fe; }
-
-        /* Chat */
-        #chat-box { height: 250px; overflow-y: auto; background: #f8fafc; border-radius: 12px; padding: 10px; margin-bottom: 10px; }
-        .chat-msg { margin-bottom: 10px; display: flex; gap: 10px; align-items: flex-start; }
-        .chat-msg img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
-        .msg-content { background: white; padding: 8px 12px; border-radius: 12px; font-size: 0.9rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        .msg-content b { color: var(--p); font-size: 0.75rem; display: block; }
-
-        .online-dot { height: 10px; width: 10px; background: #22c55e; border-radius: 50%; display: inline-block; margin-right: 8px; }
-        .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; background: #f1f5f9; margin: 4px; cursor: pointer; }
-    </style>
+<meta charset="UTF-8">
+<title>İş Takip - Ekip Sistemi</title>
+<style>
+    :root { --primary: #0066cc; }
+    body { font-family: Arial, sans-serif; margin:0; background:#f4f4f4; }
+    .container { max-width: 1100px; margin: auto; }
+    header { background: var(--primary); color: white; padding: 15px; text-align: center; }
+    .login { max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); text-align: center; }
+    input, select, button { padding: 12px; margin: 10px 0; width: 100%; border-radius: 6px; border: 1px solid #ccc; font-size: 16px; }
+    button { background: var(--primary); color: white; border: none; cursor: pointer; }
+    button:hover { background: #0055aa; }
+    .tab { display: flex; background: #ddd; }
+    .tab button { flex:1; padding:15px; background:none; border:none; font-weight:bold; }
+    .tab button.active { background:white; border-bottom:3px solid var(--primary); }
+    .section { display:none; padding:20px; background:white; margin:10px; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.1); }
+    .section.active { display:block; }
+    table { width:100%; border-collapse:collapse; margin-top:20px; }
+    th, td { padding:12px; text-align:left; border-bottom:1px solid #ddd; }
+    th { background:#f0f0f0; }
+    .status-at { color:#0066cc; font-weight:bold; }
+    .status-yap { color:#28a745; font-weight:bold; }
+    .status-ert { color:#ffc107; font-weight:bold; }
+    .status-rek { color:#dc3545; font-weight:bold; }
+    .report-box { background:#f8f9fa; padding:20px; border-radius:8px; margin-top:20px; }
+</style>
 </head>
 <body>
 
-<div id="auth-section" class="modal-overlay">
-    <div id="login-box" class="auth-card">
-        <h2>Aile Portalı 🏠</h2>
-        <input type="email" id="l-email" placeholder="E-posta">
-        <input type="password" id="l-pass" placeholder="Şifre">
-        <button onclick="login()">Giriş Yap</button>
-        <p style="font-size: 0.8rem; margin-top:15px;">
-            <a href="#" onclick="switchAuth('reg')" style="color:var(--p)">Kayıt Ol</a> | 
-            <a href="#" onclick="switchAuth('reset')" style="color:var(--p)">Şifremi Unuttum</a>
-        </p>
-    </div>
-    <div id="reg-box" class="auth-card hidden">
-        <h2>Yeni Üye ✨</h2>
-        <input type="text" id="r-name" placeholder="Adınız Soyadınız">
-        <input type="email" id="r-email" placeholder="E-posta">
-        <input type="password" id="r-pass" placeholder="Şifre (Min 6)">
-        <button onclick="register()">Kaydı Tamamla</button>
-        <p><a href="#" onclick="switchAuth('login')">Geri Dön</a></p>
-    </div>
-    <div id="reset-box" class="auth-card hidden">
-        <h2>Şifre Sıfırla</h2>
-        <input type="email" id="reset-email" placeholder="E-posta adresiniz">
-        <button onclick="resetPass()">Sıfırlama Linki Gönder</button>
-        <div id="reset-spam-warn" class="info-box hidden">
-            📩 E-posta gönderildi! Gelen kutusunda bulamazsanız lütfen <b>Spam (Gereksiz)</b> klasörünü kontrol edin.
+<header>
+    <h1>🏗️ İş Takip Sistemi</h1>
+</header>
+
+<div id="loginScreen" class="login">
+    <h2>Ekip Kodu ile Giriş</h2>
+    <input type="text" id="teamCode" placeholder="Ekip Kodu (örn: 06EVB104)" autofocus>
+    <button onclick="login()">Giriş Yap</button>
+</div>
+
+<div id="app" style="display:none;">
+    <div class="container">
+        <div style="padding:15px; background:white; display:flex; justify-content:space-between; align-items:center;">
+            <h2>Ekip: <span id="teamName" style="color:#0066cc;"></span></h2>
+            <button onclick="logout()">Çıkış</button>
         </div>
-        <p><a href="#" onclick="switchAuth('login')">Geri Dön</a></p>
+
+        <div class="tab">
+            <button class="active" onclick="showTab(0)">İşler</button>
+            <button onclick="showTab(1)">Rapor</button>
+        </div>
+
+        <!-- İşler Sekmesi -->
+        <div id="tab0" class="section active">
+            <h3>Yeni İş Ekle</h3>
+            <select id="jobType">
+                <option value="FTTH Kurulum">FTTH Kurulum</option>
+                <option value="FTTH Arıza">FTTH Arıza</option>
+                <option value="IPTV Kurulum">IPTV Kurulum</option>
+                <option value="IPTV Arıza">IPTV Arıza</option>
+                <option value="Ses Kurulum">Ses Kurulum</option>
+                <option value="Ses Arıza">Ses Arıza</option>
+                <option value="Harici">Harici</option>
+            </select>
+            <input type="date" id="jobDate">
+            <button onclick="addJob()">İş Ekle</button>
+
+            <h3 style="margin-top:30px;">İş Listesi</h3>
+            <table id="jobsTable">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Tip</th>
+                        <th>Durum</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Rapor Sekmesi -->
+        <div id="tab1" class="section">
+            <h3>Rapor Oluştur</h3>
+            <input type="date" id="reportDate">
+            <button onclick="generateReport()">Rapor Göster</button>
+
+            <div id="reportResult" class="report-box" style="display:none;"></div>
+        </div>
     </div>
 </div>
 
-<div id="profile-modal" class="modal-overlay hidden">
-    <div class="modal-card">
-        <h3>Profil Ayarları</h3>
-        <label style="font-size: 0.8rem; color: #666;">Profil Fotoğrafı URL</label>
-        <input type="text" id="p-img" placeholder="https://site.com/foto.jpg">
-        <label style="font-size: 0.8rem; color: #666;">İsim Güncelle</label>
-        <input type="text" id="p-name" placeholder="Yeni İsminiz">
-        <button onclick="updateProfile()">Kaydet ve Kapat</button>
-        <button onclick="toggleProfile(false)" style="background:#64748b;">Vazgeç</button>
-        <hr style="margin:20px 0; opacity:0.2;">
-        <button onclick="auth.signOut().then(()=>location.reload())" style="background:#f43f5e;">Güvenli Çıkış Yap</button>
-    </div>
-</div>
-
-<div id="main-ui" class="hidden">
-    <div class="navbar">
-        <div class="nav-user" onclick="toggleProfile(true)">
-            <img id="nav-avatar" class="avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
-            <div id="welcome-text" style="font-weight: 800; color: var(--p);">Yükleniyor...</div>
-        </div>
-    </div>
-
-    <div class="grid">
-        <div class="card">
-            <h3>👥 Kimler Burada?</h3>
-            <div style="margin-bottom: 10px;">
-                <span class="status-badge" onclick="updateStatus('🏠 Evde')">Evde</span>
-                <span class="status-badge" onclick="updateStatus('🚗 Yolda')">Yolda</span>
-                <span class="status-badge" onclick="updateStatus('🏢 Dışarıda')">Dışarıda</span>
-                <span class="status-badge" onclick="updateStatus('💼 İşte')">İşte</span>
-            </div>
-            <div id="user-list"></div>
-        </div>
-
-        <div class="card">
-            <h3>💬 Aile Sohbeti</h3>
-            <div id="chat-box"></div>
-            <div style="display:flex; gap:5px;">
-                <input type="text" id="chatInp" placeholder="Mesaj yaz..." onkeypress="if(event.key==='Enter') sendChat()">
-                <button onclick="sendChat()" style="width:50px">></button>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>📅 Özel Günler</h3>
-            <div id="event-list" style="margin-bottom:10px;"></div>
-            <input type="text" id="evName" placeholder="Etkinlik Adı">
-            <input type="date" id="evDate">
-            <button onclick="addEvent()">Takvime Ekle</button>
-        </div>
-    </div>
-</div>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
 <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyD2ESoJXY1Ue3_guJ_V2AW-XaG039FRdOQ",
-        authDomain: "family-46cfe.firebaseapp.com",
-        projectId: "family-46cfe",
-        storageBucket: "family-46cfe.firebasestorage.app",
-        messagingSenderId: "153626200125",
-        appId: "1:153626200125:web:47818655b39207a93b4254"
-    };
+// ==================== Firebase Config ====================
+// BURAYI KENDİ CONFIG'İNLE DEĞİŞTİR !!!
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "your-project.firebaseapp.com",
+    databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+    projectId: "your-project",
+    storageBucket: "your-project.appspot.com",
+    messagingSenderId: "123456789",
+    appId: "1:123456789:web:abcdef123456"
+};
+// ========================================================
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-    const defAvatar = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+let currentTeam = "";
+let jobsRef = null;
+let daysRef = null;
 
-    function switchAuth(box) {
-        document.getElementById('login-box').classList.add('hidden');
-        document.getElementById('reg-box').classList.add('hidden');
-        document.getElementById('reset-box').classList.add('hidden');
-        document.getElementById('reset-spam-warn').classList.add('hidden'); // Uyarıyı sıfırla
-        document.getElementById(box + '-box').classList.remove('hidden');
-    }
+function login() {
+    currentTeam = document.getElementById("teamCode").value.trim().toUpperCase();
+    if (!currentTeam) return alert("Ekip kodu gir!");
 
-    function toggleProfile(show) {
-        document.getElementById('profile-modal').classList.toggle('hidden', !show);
-    }
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    document.getElementById("teamName").textContent = currentTeam;
 
-    // --- AUTH ---
-    async function register() {
-        const n = document.getElementById('r-name').value;
-        const e = document.getElementById('r-email').value;
-        const p = document.getElementById('r-pass').value;
-        if(!n || !e || p.length < 6) return alert("Lütfen bilgileri eksiksiz doldurun!");
-        try {
-            const res = await auth.createUserWithEmailAndPassword(e, p);
-            await db.collection("users").doc(res.user.uid).set({ 
-                name: n, 
-                img: defAvatar,
-                status: "Yeni Üye", 
-                lastSeen: Date.now() 
-            });
-        } catch(err) { alert(err.message); }
-    }
+    jobsRef = db.ref("teams/" + currentTeam + "/jobs");
+    daysRef = db.ref("teams/" + currentTeam + "/days");
 
-    function login() {
-        auth.signInWithEmailAndPassword(document.getElementById('l-email').value, document.getElementById('l-pass').value).catch(alert);
-    }
+    loadJobs();
+}
 
-    // GÜNCELLENMİŞ ŞİFRE SIFIRLAMA
-    function resetPass() {
-        const email = document.getElementById('reset-email').value;
-        if(!email) return alert("Lütfen e-posta adresinizi yazın!");
-        
-        auth.sendPasswordResetEmail(email).then(() => {
-            // Alert yerine UI üzerinde bilgilendirme yapıyoruz
-            document.getElementById('reset-spam-warn').classList.remove('hidden');
-        }).catch(err => alert("Hata: " + err.message));
-    }
+function logout() {
+    location.reload();
+}
 
-    // --- DASHBOARD ---
-    auth.onAuthStateChanged(user => {
-        if(user) {
-            document.getElementById('auth-section').classList.add('hidden');
-            document.getElementById('main-ui').classList.remove('hidden');
-            startApp(user);
-        }
+function showTab(n) {
+    document.querySelectorAll('.tab button').forEach((b,i) => b.classList.toggle('active', i===n));
+    document.querySelectorAll('.section').forEach((s,i) => s.classList.toggle('active', i===n));
+}
+
+// İş Ekle
+function addJob() {
+    const type = document.getElementById("jobType").value;
+    let date = document.getElementById("jobDate").value;
+    if (!date) date = new Date().toISOString().split('T')[0];
+
+    const newJobRef = jobsRef.push();
+    newJobRef.set({
+        id: newJobRef.key,
+        type: type,
+        date: date,
+        status: "Atanan",
+        timestamp: Date.now()
     });
 
-    function startApp(user) {
-        db.collection("users").doc(user.uid).onSnapshot(doc => {
-            if(doc.exists) {
-                const data = doc.data();
-                document.getElementById('welcome-text').innerText = data.name;
-                // Resim kontrolü
-                const userImg = data.img || defAvatar;
-                document.getElementById('nav-avatar').src = userImg;
-                document.getElementById('p-name').value = data.name;
-                document.getElementById('p-img').value = data.img;
+    alert("İş eklendi!");
+}
+
+// İşleri Yükle
+function loadJobs() {
+    jobsRef.on("value", snapshot => {
+        const tbody = document.querySelector("#jobsTable tbody");
+        tbody.innerHTML = "";
+
+        snapshot.forEach(child => {
+            const job = child.val();
+            const tr = document.createElement("tr");
+
+            let statusClass = "";
+            if (job.status === "Yapılan") statusClass = "status-yap";
+            else if (job.status === "Ertelenen") statusClass = "status-ert";
+            else if (job.status === "Reklamasyon") statusClass = "status-rek";
+            else statusClass = "status-at";
+
+            tr.innerHTML = `
+                <td>${job.date}</td>
+                <td>${job.type}</td>
+                <td class="${statusClass}">${job.status}</td>
+                <td>
+                    <button onclick="changeStatus('${job.id}', 'Yapılan')">✔ Tamamla</button>
+                    <button onclick="changeStatus('${job.id}', 'Ertelenen')">⏳ Ertele</button>
+                    <button onclick="changeStatus('${job.id}', 'Reklamasyon')">❌ Reklamasyon</button>
+                    <button onclick="deleteJob('${job.id}')">🗑 Sil</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    });
+}
+
+function changeStatus(jobId, newStatus) {
+    jobsRef.child(jobId).update({ status: newStatus });
+}
+
+function deleteJob(jobId) {
+    if (confirm("Bu işi silmek istediğine emin misin?")) {
+        jobsRef.child(jobId).remove();
+    }
+}
+
+// Rapor
+function generateReport() {
+    const date = document.getElementById("reportDate").value;
+    if (!date) return alert("Tarih seç!");
+
+    jobsRef.once("value").then(snapshot => {
+        let total = 0, yapilan = 0, kalan = 0, ertelenen = 0, reklamasyon = 0;
+
+        snapshot.forEach(child => {
+            const j = child.val();
+            if (j.date === date) {
+                total++;
+                if (j.status === "Yapılan") yapilan++;
+                else if (j.status === "Atanan") kalan++;
+                else if (j.status === "Ertelenen") ertelenen++;
+                else if (j.status === "Reklamasyon") reklamasyon++;
             }
         });
 
-        db.collection("users").onSnapshot(ss => {
-            const list = document.getElementById('user-list');
-            list.innerHTML = '';
-            ss.forEach(doc => {
-                const d = doc.data();
-                const online = (Date.now() - d.lastSeen) < 120000;
-                list.innerHTML += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f8fafc;">
-                    <span><span class="${online ? 'online-dot' : ''}" style="background:${online?'#22c55e':'#cbd5e1'}"></span>${d.name}</span>
-                    <span style="font-size:0.75rem; color:#64748b;">${d.status}</span>
-                </div>`;
-            });
+        daysRef.child(date).once("value").then(daySnap => {
+            const dayData = daySnap.val() || { start: "??:??", end: "??:??" };
+
+            const html = `
+                <h2>${date} Raporu</h2>
+                <p><strong>Kontak:</strong> ${dayData.start} / ${dayData.end}</p>
+                <p><strong>Atanan İş:</strong> ${total}</p>
+                <p><strong>Yapılan:</strong> ${yapilan}</p>
+                <p><strong>Kalan:</strong> ${kalan}</p>
+                <p><strong>Ertelenen:</strong> ${ertelenen}</p>
+                <p><strong>Reklamasyon:</strong> ${reklamasyon}</p>
+                <hr>
+                <small>Kontak saatini değiştirmek istersen aşağıdan düzenle:</small><br>
+                <input type="time" id="startTime" value="${dayData.start}">
+                <input type="time" id="endTime" value="${dayData.end}">
+                <button onclick="saveContact('${date}')">Kontak Kaydet</button>
+            `;
+
+            document.getElementById("reportResult").innerHTML = html;
+            document.getElementById("reportResult").style.display = "block";
         });
+    });
+}
 
-        db.collection("messages").orderBy("ts", "asc").onSnapshot(ss => {
-            const box = document.getElementById('chat-box'); box.innerHTML = '';
-            ss.forEach(doc => {
-                const d = doc.data();
-                box.innerHTML += `<div class="chat-msg">
-                    <img src="${d.img || defAvatar}" onerror="this.src='${defAvatar}'">
-                    <div class="msg-content"><b>${d.u}</b>${d.m}</div>
-                </div>`;
-            });
-            box.scrollTop = box.scrollHeight;
-        });
+function saveContact(date) {
+    const start = document.getElementById("startTime").value;
+    const end = document.getElementById("endTime").value;
+    daysRef.child(date).set({ start, end });
+    alert("Kontak saatleri kaydedildi!");
+}
 
-        db.collection("events").orderBy("date").onSnapshot(ss => {
-            const list = document.getElementById('event-list'); list.innerHTML = '';
-            ss.forEach(doc => {
-                list.innerHTML += `<div style="font-size:0.85rem; margin-bottom:5px;">🗓️ ${doc.data().date} - ${doc.data().name} <span onclick="db.collection('events').doc('${doc.id}').delete()" style="color:red; cursor:pointer">X</span></div>`;
-            });
-        });
-
-        setInterval(() => { db.collection("users").doc(user.uid).update({ lastSeen: Date.now() }); }, 60000);
-    }
-
-    // --- ACTIONS ---
-    function updateProfile() {
-        const name = document.getElementById('p-name').value;
-        const img = document.getElementById('p-img').value;
-        db.collection("users").doc(auth.currentUser.uid).update({ name, img }).then(() => {
-            toggleProfile(false);
-            alert("Profil güncellendi!");
-        });
-    }
-
-    function sendChat() {
-        const m = document.getElementById('chatInp').value;
-        if(!m) return;
-        db.collection("users").doc(auth.currentUser.uid).get().then(doc => {
-            const d = doc.data();
-            db.collection("messages").add({ u: d.name, img: d.img, m, ts: firebase.firestore.FieldValue.serverTimestamp() });
-        });
-        document.getElementById('chatInp').value = '';
-    }
-
-    function updateStatus(s) { db.collection("users").doc(auth.currentUser.uid).update({ status: s, lastSeen: Date.now() }); }
-    function addEvent() { 
-        const name = document.getElementById('evName').value; 
-        const date = document.getElementById('evDate').value;
-        if(name && date) db.collection("events").add({ name, date });
-    }
+// Bugünün tarihini varsayılan yap
+document.getElementById("jobDate").value = new Date().toISOString().split('T')[0];
+document.getElementById("reportDate").value = new Date().toISOString().split('T')[0];
 </script>
 </body>
 </html>
-
