@@ -153,17 +153,14 @@
     <div class="modal-content">
         <h3>İşi Düzenle</h3>
         <input type="hidden" id="editId">
-        
         <label style="font-size:0.8rem; color:gray;">İş Tipi</label>
         <select id="editIsTip">
             <option>FTTH Kurulum</option><option>FTTH Arıza</option>
             <option>IPTV Kurulum</option><option>FTTH Ses Kurulum</option>
             <option>FTTH-IPTV Kurulum</option><option>Harici iş</option>
         </select>
-        
         <label style="font-size:0.8rem; color:gray;">Açıklama (Ad, Soyad, No)</label>
         <textarea id="editAciklama" rows="4"></textarea>
-        
         <div style="display:flex; gap:10px; margin-top:1rem;">
             <button onclick="duzenleKaydet()" style="background:#16a34a;">KAYDET</button>
             <button onclick="document.getElementById('editModal').style.display='none'" style="background:#9ca3af;">İPTAL</button>
@@ -190,7 +187,6 @@
     let currentEkip = localStorage.getItem("saha_ekip_kodu") || "";
     let globalIsListesi = []; 
 
-    // Kamera Kontrolleri
     window.kamerayiAc = async () => {
         document.getElementById('camera-wrapper').style.display = 'flex';
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
@@ -212,25 +208,26 @@
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         window.kamerayiKapat();
-        document.getElementById('ocrStatus').innerText = "Yazılar ve SAAT okunuyor, lütfen bekle...";
+        document.getElementById('ocrStatus').innerText = "Yazılar okunuyor, lütfen bekle...";
         const dataUrl = canvas.toDataURL('image/png');
         
         try {
             const result = await Tesseract.recognize(dataUrl, 'eng+tur');
             const text = result.data.text;
             
-            // Abone No bul
             const aboneNoMatch = text.match(/17\d{8}/);
             if(aboneNoMatch) document.getElementById('isNo').value = aboneNoMatch[0];
             
-            // İsim bul
             const satirlar = text.split('\n');
             const isimAdayi = satirlar.find(s => /^[A-ZÇĞİÖŞÜ\s]{5,30}$/.test(s.trim()));
             if(isimAdayi) document.getElementById('isMusteri').value = isimAdayi.trim();
 
-           
+            document.getElementById('ocrStatus').innerText = "Tarama bitti!";
+        } catch(e) {
+            document.getElementById('ocrStatus').innerText = "Hata oluştu!";
+        }
+    };
 
-    // Global Fonksiyonlar
     window.girisYap = () => {
         const kod = document.getElementById("teamCode").value.trim().toUpperCase();
         if(!kod) return alert("Ekip kodu boş olamaz");
@@ -255,11 +252,8 @@
         const tarih = document.getElementById("isTarih").value;
         const musteri = document.getElementById("isMusteri").value.trim();
         const no = document.getElementById("isNo").value.trim();
-        
         if(!musteri && !no) return alert("Bilgileri girin veya okutun.");
-        
         const otomatikAciklama = `İsim: ${musteri}\nNo: ${no}`;
-
         try {
             await addDoc(collection(db, `teams/${currentEkip}/jobs`), {
                 tip, tarih, aciklama: otomatikAciklama,
@@ -268,7 +262,6 @@
             });
             document.getElementById("isMusteri").value = "";
             document.getElementById("isNo").value = "";
-            alert("Kayıt eklendi!");
         } catch(e) { alert("Hata: "+e.message); }
     };
 
@@ -282,12 +275,8 @@
         const yarin = new Date(bugun);
         yarin.setDate(yarin.getDate() + 1);
         const yarinStr = yarin.toISOString().split('T')[0];
-
         const ref = doc(db, `teams/${currentEkip}/jobs`, id);
-        await updateDoc(ref, { 
-            durum: "Ertelenen",
-            tarih: yarinStr 
-        });
+        await updateDoc(ref, { durum: "Ertelenen", tarih: yarinStr });
     };
 
     window.isSil = async (id) => {
@@ -309,7 +298,6 @@
         const id = document.getElementById('editId').value;
         const tip = document.getElementById('editIsTip').value;
         const aciklama = document.getElementById('editAciklama').value;
-
         try {
             const ref = doc(db, `teams/${currentEkip}/jobs`, id);
             await updateDoc(ref, { tip, aciklama });
@@ -353,28 +341,22 @@
             const div = document.getElementById("isListesiContainer");
             div.innerHTML = "";
             let veri = [];
-            
             let c_toplam = 0, c_yapilan = 0, c_kalan = 0;
 
             snap.forEach(d => {
                 const item = {id:d.id, ...d.data()};
                 veri.push(item);
                 c_toplam++;
-                if(item.durum === "Yapılan") {
-                    c_yapilan++;
-                } else if(item.durum === "Atanan") {
-                    c_kalan++;
-                }
+                if(item.durum === "Yapılan") c_yapilan++;
+                else if(item.durum === "Atanan") c_kalan++;
             });
             
             globalIsListesi = veri;
-            
             document.getElementById("sayacToplam").innerText = c_toplam;
             document.getElementById("sayacYapilan").innerText = c_yapilan;
             document.getElementById("sayacKalan").innerText = c_kalan;
 
-            // SIRALAMA DEĞİŞTİRİLDİ: ESKİDEN YENİYE
-            // Böylece ilk eklenen en üstte kalır.
+            // Sıralama: İlk eklenen en üstte
             veri.sort((a,b) => a.timestamp - b.timestamp);
             
             if(veri.length === 0) {
@@ -400,8 +382,8 @@
                     <div style="margin:0.5rem 0; font-size:0.95rem; white-space:pre-wrap;">${is.aciklama}</div>
                     <div class="action-row">
                         <button class="action-btn" style="background:#16a34a" onclick="durumGuncelle('${is.id}', 'Yapılan')">✔ Yapıldı</button>
-                        <button class="action-btn" style="background:#ca8a04" onclick="isiErtele('${is.id}')">⏳ Ertele</button>
-                        <button class="action-btn" style="background:#dc2626" onclick="durumGuncelle('${is.id}', 'Reklamasyon')">❌ Reklam</button>
+                        <button class="action-btn" style="background:#ca8a04" onclick="isiErtele('${is.id}')">⏳ Ertele (Yarına)</button>
+                        <button class="action-btn" style="background:#dc2626" onclick="durumGuncelle('${is.id}', 'Reklamasyon')">❌ Reklam (İptal)</button>
                         <button class="action-btn" style="background:#2563eb" onclick="modalAc('${is.id}')">✏️ Düzenle</button>
                         <button class="action-btn" style="background:#9ca3af" onclick="isSil('${is.id}')">🗑 Sil</button>
                     </div>
