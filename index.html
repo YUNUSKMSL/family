@@ -35,7 +35,6 @@
         .report-box { background:#1f2937; color:#e5e7eb; font-family:monospace; padding:1rem; border-radius:8px; white-space:pre-wrap; font-size:0.9rem; line-height:1.5; position:relative; }
         .copy-btn { position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.2); width:auto; padding:0.3rem 0.8rem; font-size:0.8rem; margin:0; }
         
-        /* SAYAÇ VE MODAL */
         .stats-container { display:flex; gap:10px; margin-bottom:1rem; }
         .stat-box { flex:1; background:white; padding:10px; border-radius:8px; text-align:center; box-shadow:0 1px 2px rgba(0,0,0,0.1); border:1px solid #e5e7eb; }
         .stat-num { display:block; font-size:1.5rem; font-weight:bold; color:var(--primary); }
@@ -213,17 +212,31 @@
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         window.kamerayiKapat();
-        document.getElementById('ocrStatus').innerText = "Yazılar okunuyor, lütfen bekle...";
+        document.getElementById('ocrStatus').innerText = "Yazılar ve SAAT okunuyor, lütfen bekle...";
         const dataUrl = canvas.toDataURL('image/png');
         
         try {
             const result = await Tesseract.recognize(dataUrl, 'eng+tur');
             const text = result.data.text;
+            
+            // Abone No bul
             const aboneNoMatch = text.match(/17\d{8}/);
             if(aboneNoMatch) document.getElementById('isNo').value = aboneNoMatch[0];
+            
+            // İsim bul
             const satirlar = text.split('\n');
             const isimAdayi = satirlar.find(s => /^[A-ZÇĞİÖŞÜ\s]{5,30}$/.test(s.trim()));
             if(isimAdayi) document.getElementById('isMusteri').value = isimAdayi.trim();
+
+            // SAAT BULMA (YENİ EKLENDİ)
+            // Örnek: 13:30, 09.00, 14:00 - 16:00
+            const saatMatch = text.match(/([0-1]?[0-9]|2[0-3])[:.]([0-5][0-9])(\s*-\s*([0-1]?[0-9]|2[0-3])[:.]([0-5][0-9]))?/);
+            if(saatMatch) {
+                let mevcutIsim = document.getElementById('isMusteri').value;
+                // Saati ismin yanına ekle
+                document.getElementById('isMusteri').value = mevcutIsim + " (" + saatMatch[0] + ")";
+            }
+
             document.getElementById('ocrStatus').innerText = "Tarama bitti!";
         } catch(e) {
             document.getElementById('ocrStatus').innerText = "Hata oluştu!";
@@ -272,13 +285,11 @@
         } catch(e) { alert("Hata: "+e.message); }
     };
 
-    // Sadece durumu günceller (Yapıldı, Reklamasyon vb.)
     window.durumGuncelle = async (id, yeniDurum) => {
         const ref = doc(db, `teams/${currentEkip}/jobs`, id);
         await updateDoc(ref, { durum: yeniDurum });
     };
 
-    // YENİ: İşi Yarına Erteleme Fonksiyonu
     window.isiErtele = async (id) => {
         const bugun = new Date();
         const yarin = new Date(bugun);
@@ -361,14 +372,10 @@
             snap.forEach(d => {
                 const item = {id:d.id, ...d.data()};
                 veri.push(item);
-                
-                // SAYAÇ HESAPLAMA GÜNCELLEMESİ
                 c_toplam++;
                 if(item.durum === "Yapılan") {
                     c_yapilan++;
                 } else if(item.durum === "Atanan") {
-                    // Sadece "Atanan" işler kalana dahil edilir.
-                    // Ertelenen ve Reklamasyon "Kalan" sayısını etkilemez.
                     c_kalan++;
                 }
             });
@@ -379,7 +386,9 @@
             document.getElementById("sayacYapilan").innerText = c_yapilan;
             document.getElementById("sayacKalan").innerText = c_kalan;
 
-            veri.sort((a,b) => b.timestamp - a.timestamp);
+            // SIRALAMA DEĞİŞTİRİLDİ: ESKİDEN YENİYE
+            // Böylece ilk eklenen en üstte kalır.
+            veri.sort((a,b) => a.timestamp - b.timestamp);
             
             if(veri.length === 0) {
                 div.innerHTML = "<p style='text-align:center;color:#9ca3af;'>Kayıtlı iş yok.</p>";
