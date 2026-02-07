@@ -228,20 +228,7 @@
             const isimAdayi = satirlar.find(s => /^[A-ZÇĞİÖŞÜ\s]{5,30}$/.test(s.trim()));
             if(isimAdayi) document.getElementById('isMusteri').value = isimAdayi.trim();
 
-            // SAAT BULMA (YENİ EKLENDİ)
-            // Örnek: 13:30, 09.00, 14:00 - 16:00
-            const saatMatch = text.match(/([0-1]?[0-9]|2[0-3])[:.]([0-5][0-9])(\s*-\s*([0-1]?[0-9]|2[0-3])[:.]([0-5][0-9]))?/);
-            if(saatMatch) {
-                let mevcutIsim = document.getElementById('isMusteri').value;
-                // Saati ismin yanına ekle
-                document.getElementById('isMusteri').value = mevcutIsim + " (" + saatMatch[0] + ")";
-            }
-
-            document.getElementById('ocrStatus').innerText = "Tarama bitti!";
-        } catch(e) {
-            document.getElementById('ocrStatus').innerText = "Hata oluştu!";
-        }
-    };
+           
 
     // Global Fonksiyonlar
     window.girisYap = () => {
