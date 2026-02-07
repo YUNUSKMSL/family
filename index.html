@@ -41,6 +41,7 @@
         .search-box { margin-bottom: 1rem; position: relative; }
         .search-box input { padding-left: 2.5rem; border-radius: 99px; border: 1px solid #e5e7eb; }
         .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.5; }
+        .date-divider { background: var(--dark); color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin: 20px 0 10px 0; display: inline-block; }
         .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center; }
         .modal-content { background:white; width:90%; max-width:400px; padding:1.5rem; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.2); }
     </style>
@@ -236,9 +237,7 @@
         if(!is) return;
         const yarin = new Date(); yarin.setDate(yarin.getDate() + 1);
         const yarinStr = yarin.toISOString().split('T')[0];
-        // Bugün için durum güncelle (Rapor için)
         await updateDoc(doc(db, `teams/${currentEkip}/jobs`, id), { durum: "Ertelenen" });
-        // Yarın için yeni iş aç (Ekrandan gitsin diye)
         await addDoc(collection(db, `teams/${currentEkip}/jobs`), {
             tip: is.tip, tarih: yarinStr, aciklama: is.aciklama, durum: "Atanan", timestamp: Date.now()
         });
@@ -278,22 +277,28 @@
     window.listeyiFiltrele = () => {
         const ara = document.getElementById('searchInput').value.toLowerCase();
         const bugun = new Date().toISOString().split('T')[0];
-        
         const filtreli = globalIsListesi.filter(is => {
             const icerik = (is.aciklama + is.tip + is.durum).toLowerCase().includes(ara);
-            // KURAL: Eğer arama kutusu boşsa; sadece bugünün veya geçmişin "Atanan" işlerini göster (Yarınkiler gizli kalsın)
-            // Eğer arama kutusu doluysa herşeyi göster (Geçmiş araması yapabilsin diye)
-            if(ara === "") {
-                return icerik && (is.tarih <= bugun);
-            }
+            if(ara === "") return icerik && (is.tarih <= bugun);
             return icerik;
         });
         listeyiYazdir(filtreli);
     };
 
     function listeyiYazdir(liste) {
-        const div = document.getElementById("isListesiContainer"); div.innerHTML = "";
+        const div = document.getElementById("isListesiContainer"); 
+        div.innerHTML = "";
+        let sonTarih = "";
+
         liste.forEach(is => {
+            // Tarih başlığı ekleme
+            if (is.tarih !== sonTarih) {
+                const bugun = new Date().toISOString().split('T')[0];
+                let tarihEtiketi = is.tarih === bugun ? "BUGÜNÜN İŞLERİ" : is.tarih;
+                div.innerHTML += `<div style="text-align:center;"><span class="date-divider">${tarihEtiketi}</span></div>`;
+                sonTarih = is.tarih;
+            }
+
             let cl = is.durum==="Yapılan"?"st-yapilan":(is.durum==="Ertelenen"?"st-ertel":(is.durum==="Reklamasyon"?"st-rek":"st-atanan"));
             let btns = is.durum==="Atanan" ? 
                 `<button class="action-btn" style="background:#16a34a" onclick="durumGuncelle('${is.id}', 'Yapılan')">✔ Yapıldı</button>
@@ -320,11 +325,15 @@
             const bugun = new Date().toISOString().split('T')[0];
             snap.forEach(d => {
                 const item = {id:d.id, ...d.data()}; v.push(item);
-                if(item.tarih === bugun) { // Sadece bugünün istatistikleri
+                if(item.tarih === bugun) {
                     st.top++; if(item.durum==="Yapılan") st.yap++; else if(item.durum==="Atanan") st.kal++;
                 }
             });
-            globalIsListesi = v.sort((a,b) => b.timestamp - a.timestamp);
+            // Tarihe göre büyükten küçüğe, tarihler aynıysa saate göre sırala
+            globalIsListesi = v.sort((a,b) => {
+                if (b.tarih !== a.tarih) return b.tarih.localeCompare(a.tarih);
+                return b.timestamp - a.timestamp;
+            });
             document.getElementById("sayacToplam").innerText = st.top;
             document.getElementById("sayacYapilan").innerText = st.yap;
             document.getElementById("sayacKalan").innerText = st.kal;
