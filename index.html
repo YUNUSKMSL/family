@@ -40,13 +40,17 @@
         .stat-num { display:block; font-size:1.5rem; font-weight:bold; color:var(--primary); }
         .stat-label { font-size:0.75rem; color:var(--gray); text-transform:uppercase; }
         
+        .search-box { margin-bottom: 1rem; position: relative; }
+        .search-box input { padding-left: 2.5rem; border-radius: 99px; border: 1px solid #e5e7eb; }
+        .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.5; }
+
         .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center; }
         .modal-content { background:white; width:90%; max-width:400px; padding:1.5rem; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
 
-<header><h1>⚡ Saha Takip</h1></header>
+<header><h1>⚡ Saha Takip Pro</h1></header>
 
 <div id="loginSection" class="login-container">
     <h3>Ekip Kodu Girişi</h3>
@@ -83,7 +87,7 @@
                 </div>
                 <div class="stat-box">
                     <span class="stat-num" id="sayacKalan" style="color:var(--warning)">0</span>
-                    <span class="stat-label">Kalan</span>
+                    <span class="stat-label">Bekleyen</span>
                 </div>
             </div>
 
@@ -102,6 +106,11 @@
                 </select>
                 <input type="date" id="isTarih">
                 <button onclick="ekleIs()" style="background:#16a34a;">KAYDET</button>
+            </div>
+
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="İsim, No veya Durum ara..." onkeyup="listeyiFiltrele()">
             </div>
 
             <div id="camera-wrapper" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:999; flex-direction:column; align-items:center; justify-content:center;">
@@ -189,14 +198,22 @@
 
     window.kamerayiAc = async () => {
         document.getElementById('camera-wrapper').style.display = 'flex';
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        document.getElementById('video').srcObject = stream;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            document.getElementById('video').srcObject = stream;
+        } catch(e) {
+            alert("Kamera hatası: " + e.message);
+            document.getElementById('camera-wrapper').style.display = 'none';
+        }
     };
 
     window.kamerayiKapat = () => {
         const video = document.getElementById('video');
-        const stream = video.srcObject;
-        if (stream) stream.getTracks().forEach(track => track.stop());
+        if(video.srcObject) {
+            const stream = video.srcObject;
+            stream.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
+        }
         document.getElementById('camera-wrapper').style.display = 'none';
     };
 
@@ -270,17 +287,40 @@
         await updateDoc(ref, { durum: yeniDurum });
     };
 
+    // Geliştirilmiş Erteleme Fonksiyonu
     window.isiErtele = async (id) => {
-        const bugun = new Date();
-        const yarin = new Date(bugun);
+        const mevcutIs = globalIsListesi.find(x => x.id === id);
+        if(!mevcutIs) return;
+
+        const bugun = new Date().toISOString().split('T')[0];
+        const yarin = new Date();
         yarin.setDate(yarin.getDate() + 1);
         const yarinStr = yarin.toISOString().split('T')[0];
-        const ref = doc(db, `teams/${currentEkip}/jobs`, id);
-        await updateDoc(ref, { durum: "Ertelenen", tarih: yarinStr });
+
+        try {
+            // 1. Mevcut işi "Ertelenen" yap ama tarihini değiştirme (Rapor için)
+            const ref = doc(db, `teams/${currentEkip}/jobs`, id);
+            await updateDoc(ref, { durum: "Ertelenen" });
+
+            // 2. Yarına kopyasını oluştur (Sıfır iş olarak)
+            // Eğer mevcut iş zaten gelecekteyse yarın tarihi verme, aynı tarih kalsın mı?
+            // Basitlik için: Her zaman yarına atar.
+            await addDoc(collection(db, `teams/${currentEkip}/jobs`), {
+                tip: mevcutIs.tip,
+                tarih: yarinStr, // Yarına yeni kayıt
+                aciklama: mevcutIs.aciklama,
+                durum: "Atanan",
+                timestamp: Date.now()
+            });
+
+            alert("İş ertelendi (Bugün raporuna işlendi) ve yarına kopyalandı.");
+        } catch(e) {
+            alert("Erteleme hatası: " + e.message);
+        }
     };
 
     window.isSil = async (id) => {
-        if(confirm("Silmek istiyor musun?")) {
+        if(confirm("Silmek istiyor musun? Bu işlem geri alınamaz.")) {
             await deleteDoc(doc(db, `teams/${currentEkip}/jobs`, id));
         }
     };
@@ -311,8 +351,11 @@
         const bas = document.getElementById("raporBaslangic").value;
         const bit = document.getElementById("raporBitis").value;
         if(!tarih) return alert("Tarih seçin");
+        
+        // Sadece o tarihteki işleri çek
         const q = query(collection(db, `teams/${currentEkip}/jobs`), where("tarih", "==", tarih));
         const snap = await getDocs(q);
+        
         let stats = { toplam:0, yapilan:0, ertelenen:0, reklamasyon:0, kalan:0 };
         snap.forEach(d => {
             const val = d.data();
@@ -322,6 +365,7 @@
             else if(val.durum === "Reklamasyon") stats.reklamasyon++;
             else stats.kalan++;
         });
+
         const metin = `${plaka}\nKontak: ${bas} / ${bit}\nTarih: ${tarih}\nAtanan iş: ${stats.toplam}\nYapılan: ${stats.yapilan}\n\nKalan: ${stats.kalan}\nErtelenen: ${stats.ertelenen}\nReklamasyon: ${stats.reklamasyon}`;
         document.getElementById("finalRaporMetni").innerText = metin;
         document.getElementById("raporSonucAlani").style.display = "block";
@@ -332,14 +376,87 @@
         navigator.clipboard.writeText(text).then(() => alert("Kopyalandı!"));
     };
 
+    // Filtreleme Fonksiyonu
+    window.listeyiFiltrele = () => {
+        const aranan = document.getElementById('searchInput').value.toLowerCase();
+        const filtrelenmis = globalIsListesi.filter(item => {
+            const metin = (item.aciklama + " " + item.tip + " " + item.durum).toLowerCase();
+            return metin.includes(aranan);
+        });
+        listeyiYazdir(filtrelenmis);
+    };
+
+    function listeyiYazdir(liste) {
+        const div = document.getElementById("isListesiContainer");
+        div.innerHTML = "";
+        
+        // Sayma işlemi için hala global listeyi baz almalıyız, filtreyi değil
+        // Ama görsel olarak filtrelenmişi gösteriyoruz.
+        
+        if(liste.length === 0) {
+            div.innerHTML = "<p style='text-align:center;color:#9ca3af;'>Kayıt bulunamadı.</p>";
+            return;
+        }
+
+        liste.forEach(is => {
+            let badgeClass = "st-atanan";
+            let butonGrup = "";
+
+            if(is.durum === "Yapılan") {
+                badgeClass = "st-yapilan";
+                butonGrup = `
+                    <button class="action-btn" style="background:#6b7280" onclick="durumGuncelle('${is.id}', 'Atanan')">↩ Geri Al (Bekle)</button>
+                `;
+            } else if(is.durum === "Ertelenen") {
+                badgeClass = "st-ertel";
+                butonGrup = `
+                    <button class="action-btn" style="background:#6b7280" onclick="durumGuncelle('${is.id}', 'Atanan')">↩ Geri Al</button>
+                    <span style="font-size:0.75rem; color:orange; align-self:center; margin-left:5px;">(Yarına Kopyalandı)</span>
+                `;
+            } else if(is.durum === "Reklamasyon") {
+                badgeClass = "st-rek";
+                butonGrup = `
+                    <button class="action-btn" style="background:#6b7280" onclick="durumGuncelle('${is.id}', 'Atanan')">↩ Geri Al</button>
+                    <button class="action-btn" style="background:#16a34a" onclick="durumGuncelle('${is.id}', 'Yapılan')">✔ Düzeltildi</button>
+                `;
+            } else {
+                // Atanan (Bekleyen) durumu
+                butonGrup = `
+                    <button class="action-btn" style="background:#16a34a" onclick="durumGuncelle('${is.id}', 'Yapılan')">✔ Yapıldı</button>
+                    <button class="action-btn" style="background:#ca8a04" onclick="isiErtele('${is.id}')">⏳ Ertele (Yarın)</button>
+                    <button class="action-btn" style="background:#dc2626" onclick="durumGuncelle('${is.id}', 'Reklamasyon')">❌ Reklamasyon</button>
+                `;
+            }
+            
+            // Düzenle ve Sil butonları her zaman görünsün
+            butonGrup += `
+                <button class="action-btn" style="background:#2563eb" onclick="modalAc('${is.id}')">✏️ Düzenle</button>
+                <button class="action-btn" style="background:#9ca3af" onclick="isSil('${is.id}')">🗑 Sil</button>
+            `;
+
+            div.innerHTML += `
+            <div class="card job-item" style="border-left-color:${badgeClass === 'st-rek' ? '#dc2626' : (badgeClass==='st-yapilan'?'#16a34a': (badgeClass==='st-ertel'?'#ca8a04':'#2563eb'))}">
+                <div style="display:flex; justify-content:space-between; align-items:start;">
+                    <div>
+                        <span class="status-badge ${badgeClass}">${is.durum}</span>
+                        <div style="font-weight:bold; margin-top:0.3rem;">${is.tip}</div>
+                    </div>
+                    <div style="font-size:0.8rem; color:#6b7280;">${is.tarih}</div>
+                </div>
+                <div style="margin:0.5rem 0; font-size:0.95rem; white-space:pre-wrap;">${is.aciklama}</div>
+                <div class="action-row">
+                    ${butonGrup}
+                </div>
+            </div>`;
+        });
+    }
+
     function baslatUygulama() {
         document.getElementById("loginSection").style.display = "none";
         document.getElementById("appSection").style.display = "block";
         document.getElementById("displayEkip").innerText = currentEkip;
         
         onSnapshot(collection(db, `teams/${currentEkip}/jobs`), (snap) => {
-            const div = document.getElementById("isListesiContainer");
-            div.innerHTML = "";
             let veri = [];
             let c_toplam = 0, c_yapilan = 0, c_kalan = 0;
 
@@ -351,44 +468,22 @@
                 else if(item.durum === "Atanan") c_kalan++;
             });
             
+            // Sıralama: En yeniden en eskiye veya Tarihe göre
+            veri.sort((a,b) => {
+                // Önce tarihe göre (Bugün en üstte)
+                if(a.tarih > b.tarih) return -1; 
+                if(a.tarih < b.tarih) return 1;
+                // Aynı günse eklenme saatine göre
+                return b.timestamp - a.timestamp; 
+            });
+
             globalIsListesi = veri;
             document.getElementById("sayacToplam").innerText = c_toplam;
             document.getElementById("sayacYapilan").innerText = c_yapilan;
             document.getElementById("sayacKalan").innerText = c_kalan;
 
-            // Sıralama: İlk eklenen en üstte
-            veri.sort((a,b) => a.timestamp - b.timestamp);
-            
-            if(veri.length === 0) {
-                div.innerHTML = "<p style='text-align:center;color:#9ca3af;'>Kayıtlı iş yok.</p>";
-                return;
-            }
-            
-            veri.forEach(is => {
-                let badgeClass = "st-atanan";
-                if(is.durum === "Yapılan") badgeClass = "st-yapilan";
-                else if(is.durum === "Ertelenen") badgeClass = "st-ertel";
-                else if(is.durum === "Reklamasyon") badgeClass = "st-rek";
-                
-                div.innerHTML += `
-                <div class="card job-item" style="border-left-color:${badgeClass === 'st-rek' ? '#dc2626' : (badgeClass==='st-yapilan'?'#16a34a':'#2563eb')}">
-                    <div style="display:flex; justify-content:space-between; align-items:start;">
-                        <div>
-                            <span class="status-badge ${badgeClass}">${is.durum}</span>
-                            <div style="font-weight:bold; margin-top:0.3rem;">${is.tip}</div>
-                        </div>
-                        <div style="font-size:0.8rem; color:#6b7280;">${is.tarih}</div>
-                    </div>
-                    <div style="margin:0.5rem 0; font-size:0.95rem; white-space:pre-wrap;">${is.aciklama}</div>
-                    <div class="action-row">
-                        <button class="action-btn" style="background:#16a34a" onclick="durumGuncelle('${is.id}', 'Yapılan')">✔ Yapıldı</button>
-                        <button class="action-btn" style="background:#ca8a04" onclick="isiErtele('${is.id}')">⏳Ertele</button>
-                        <button class="action-btn" style="background:#dc2626" onclick="durumGuncelle('${is.id}', 'Reklamasyon')">❌Reklamasyon</button>
-                        <button class="action-btn" style="background:#2563eb" onclick="modalAc('${is.id}')">✏️ Düzenle</button>
-                        <button class="action-btn" style="background:#9ca3af" onclick="isSil('${is.id}')">🗑 Sil</button>
-                    </div>
-                </div>`;
-            });
+            // İlk açılışta filtreleme yoksa hepsini göster
+            window.listeyiFiltrele();
         });
     }
 
