@@ -35,7 +35,7 @@
         .report-box { background:#1f2937; color:#e5e7eb; font-family:monospace; padding:1rem; border-radius:8px; white-space:pre-wrap; font-size:0.9rem; line-height:1.5; position:relative; }
         .copy-btn { position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.2); width:auto; padding:0.3rem 0.8rem; font-size:0.8rem; margin:0; }
         
-        /* YENİ EKLENEN STİLLER: SAYAÇ VE MODAL */
+        /* SAYAÇ VE MODAL */
         .stats-container { display:flex; gap:10px; margin-bottom:1rem; }
         .stat-box { flex:1; background:white; padding:10px; border-radius:8px; text-align:center; box-shadow:0 1px 2px rgba(0,0,0,0.1); border:1px solid #e5e7eb; }
         .stat-num { display:block; font-size:1.5rem; font-weight:bold; color:var(--primary); }
@@ -87,9 +87,10 @@
                     <span class="stat-label">Kalan</span>
                 </div>
             </div>
+
             <div class="card">
                 <h3>Yeni İş Kaydı</h3>
-                <button onclick="kamerayiAc()" style="background:#1f2937;">📷Tara (Kamera)</button>
+                <button onclick="kamerayiAc()" style="background:#1f2937;">📷 Evrak Tara (Kamera)</button>
                 <p id="ocrStatus" style="font-size:0.8rem; color:gray; text-align:center;">Tarama için butona bas</p>
                 
                 <input type="text" id="isMusteri" placeholder="Müşteri Ad Soyad (Otomatik)">
@@ -188,7 +189,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     let currentEkip = localStorage.getItem("saha_ekip_kodu") || "";
-    let globalIsListesi = []; // Düzenleme işlemi için verileri tutar
+    let globalIsListesi = []; 
 
     // Kamera Kontrolleri
     window.kamerayiAc = async () => {
@@ -271,9 +272,24 @@
         } catch(e) { alert("Hata: "+e.message); }
     };
 
+    // Sadece durumu günceller (Yapıldı, Reklamasyon vb.)
     window.durumGuncelle = async (id, yeniDurum) => {
         const ref = doc(db, `teams/${currentEkip}/jobs`, id);
         await updateDoc(ref, { durum: yeniDurum });
+    };
+
+    // YENİ: İşi Yarına Erteleme Fonksiyonu
+    window.isiErtele = async (id) => {
+        const bugun = new Date();
+        const yarin = new Date(bugun);
+        yarin.setDate(yarin.getDate() + 1);
+        const yarinStr = yarin.toISOString().split('T')[0];
+
+        const ref = doc(db, `teams/${currentEkip}/jobs`, id);
+        await updateDoc(ref, { 
+            durum: "Ertelenen",
+            tarih: yarinStr 
+        });
     };
 
     window.isSil = async (id) => {
@@ -282,7 +298,6 @@
         }
     };
 
-    // YENİ EKLENEN: DÜZENLEME FONKSİYONLARI
     window.modalAc = (id) => {
         const kayit = globalIsListesi.find(x => x.id === id);
         if(!kayit) return;
@@ -303,7 +318,6 @@
             document.getElementById('editModal').style.display = 'none';
         } catch(e) { alert("Güncelleme hatası: " + e.message); }
     };
-    // DÜZENLEME FONKSİYONLARI SONU
 
     window.raporUret = async () => {
         const tarih = document.getElementById("raporTarihSecim").value;
@@ -342,22 +356,25 @@
             div.innerHTML = "";
             let veri = [];
             
-            // SAYAÇ DEĞİŞKENLERİ
             let c_toplam = 0, c_yapilan = 0, c_kalan = 0;
 
             snap.forEach(d => {
                 const item = {id:d.id, ...d.data()};
                 veri.push(item);
                 
-                // SAYAÇ HESAPLAMA
+                // SAYAÇ HESAPLAMA GÜNCELLEMESİ
                 c_toplam++;
-                if(item.durum === "Yapılan") c_yapilan++;
-                else c_kalan++;
+                if(item.durum === "Yapılan") {
+                    c_yapilan++;
+                } else if(item.durum === "Atanan") {
+                    // Sadece "Atanan" işler kalana dahil edilir.
+                    // Ertelenen ve Reklamasyon "Kalan" sayısını etkilemez.
+                    c_kalan++;
+                }
             });
             
-            globalIsListesi = veri; // Düzenleme için global listeyi güncelle
+            globalIsListesi = veri;
             
-            // SAYAÇ GÜNCELLEME
             document.getElementById("sayacToplam").innerText = c_toplam;
             document.getElementById("sayacYapilan").innerText = c_yapilan;
             document.getElementById("sayacKalan").innerText = c_kalan;
@@ -387,8 +404,8 @@
                     <div style="margin:0.5rem 0; font-size:0.95rem; white-space:pre-wrap;">${is.aciklama}</div>
                     <div class="action-row">
                         <button class="action-btn" style="background:#16a34a" onclick="durumGuncelle('${is.id}', 'Yapılan')">✔ Yapıldı</button>
-                        <button class="action-btn" style="background:#ca8a04" onclick="durumGuncelle('${is.id}', 'Ertelenen')">⏳ Ertele</button>
-                        <button class="action-btn" style="background:#dc2626" onclick="durumGuncelle('${is.id}', 'Reklamasyon')">❌ Reklam</button>
+                        <button class="action-btn" style="background:#ca8a04" onclick="isiErtele('${is.id}')">⏳ Ertele (Yarına)</button>
+                        <button class="action-btn" style="background:#dc2626" onclick="durumGuncelle('${is.id}', 'Reklamasyon')">❌ Reklam (İptal)</button>
                         <button class="action-btn" style="background:#2563eb" onclick="modalAc('${is.id}')">✏️ Düzenle</button>
                         <button class="action-btn" style="background:#9ca3af" onclick="isSil('${is.id}')">🗑 Sil</button>
                     </div>
