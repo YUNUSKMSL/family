@@ -34,6 +34,15 @@
         .action-btn { font-size:0.8rem; padding:0.5rem 0.8rem; border-radius:6px; white-space:nowrap; flex:1; margin:0; }
         .report-box { background:#1f2937; color:#e5e7eb; font-family:monospace; padding:1rem; border-radius:8px; white-space:pre-wrap; font-size:0.9rem; line-height:1.5; position:relative; }
         .copy-btn { position:absolute; top:10px; right:10px; background:rgba(255,255,255,0.2); width:auto; padding:0.3rem 0.8rem; font-size:0.8rem; margin:0; }
+        
+        /* YENİ EKLENEN STİLLER: SAYAÇ VE MODAL */
+        .stats-container { display:flex; gap:10px; margin-bottom:1rem; }
+        .stat-box { flex:1; background:white; padding:10px; border-radius:8px; text-align:center; box-shadow:0 1px 2px rgba(0,0,0,0.1); border:1px solid #e5e7eb; }
+        .stat-num { display:block; font-size:1.5rem; font-weight:bold; color:var(--primary); }
+        .stat-label { font-size:0.75rem; color:var(--gray); text-transform:uppercase; }
+        
+        .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center; }
+        .modal-content { background:white; width:90%; max-width:400px; padding:1.5rem; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
@@ -63,9 +72,24 @@
         </div>
 
         <div id="tab0" class="section active">
+            
+            <div class="stats-container">
+                <div class="stat-box">
+                    <span class="stat-num" id="sayacToplam">0</span>
+                    <span class="stat-label">Toplam</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-num" id="sayacYapilan" style="color:var(--success)">0</span>
+                    <span class="stat-label">Yapılan</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-num" id="sayacKalan" style="color:var(--warning)">0</span>
+                    <span class="stat-label">Kalan</span>
+                </div>
+            </div>
             <div class="card">
                 <h3>Yeni İş Kaydı</h3>
-                <button onclick="kamerayiAc()" style="background:#1f2937;">📷 Evrak Tara (Kamera)</button>
+                <button onclick="kamerayiAc()" style="background:#1f2937;">📷Tara (Kamera)</button>
                 <p id="ocrStatus" style="font-size:0.8rem; color:gray; text-align:center;">Tarama için butona bas</p>
                 
                 <input type="text" id="isMusteri" placeholder="Müşteri Ad Soyad (Otomatik)">
@@ -73,7 +97,8 @@
                 
                 <select id="isTip">
                     <option>FTTH Kurulum</option><option>FTTH Arıza</option>
-                    <option>IPTV Kurulum</option><option>IPTV Arıza</option>
+                    <option>IPTV Kurulum</option><option>FTTH Ses Kurulum</option>
+                    <option>FTTH-IPTV Kurulum</option><option>Harici iş</option>
                 </select>
                 <input type="date" id="isTarih">
                 <button onclick="ekleIs()" style="background:#16a34a;">KAYDET</button>
@@ -100,11 +125,11 @@
                 <div style="display:flex; gap:0.5rem;">
                     <div style="flex:1;">
                         <label style="font-size:0.85rem; color:var(--gray);">Kontak Başlangıç</label>
-                        <input type="time" id="raporBaslangic" value="08:17">
+                        <input type="time" id="raporBaslangic" value="08:30">
                     </div>
                     <div style="flex:1;">
                         <label style="font-size:0.85rem; color:var(--gray);">Kontak Bitiş</label>
-                        <input type="time" id="raporBitis" value="17:17">
+                        <input type="time" id="raporBitis" value="17:30">
                     </div>
                 </div>
 
@@ -120,6 +145,28 @@
                     <span id="finalRaporMetni"></span>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div id="editModal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>İşi Düzenle</h3>
+        <input type="hidden" id="editId">
+        
+        <label style="font-size:0.8rem; color:gray;">İş Tipi</label>
+        <select id="editIsTip">
+            <option>FTTH Kurulum</option><option>FTTH Arıza</option>
+            <option>IPTV Kurulum</option><option>FTTH Ses Kurulum</option>
+            <option>FTTH-IPTV Kurulum</option><option>Harici iş</option>
+        </select>
+        
+        <label style="font-size:0.8rem; color:gray;">Açıklama (Ad, Soyad, No)</label>
+        <textarea id="editAciklama" rows="4"></textarea>
+        
+        <div style="display:flex; gap:10px; margin-top:1rem;">
+            <button onclick="duzenleKaydet()" style="background:#16a34a;">KAYDET</button>
+            <button onclick="document.getElementById('editModal').style.display='none'" style="background:#9ca3af;">İPTAL</button>
         </div>
     </div>
 </div>
@@ -141,6 +188,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     let currentEkip = localStorage.getItem("saha_ekip_kodu") || "";
+    let globalIsListesi = []; // Düzenleme işlemi için verileri tutar
 
     // Kamera Kontrolleri
     window.kamerayiAc = async () => {
@@ -234,6 +282,29 @@
         }
     };
 
+    // YENİ EKLENEN: DÜZENLEME FONKSİYONLARI
+    window.modalAc = (id) => {
+        const kayit = globalIsListesi.find(x => x.id === id);
+        if(!kayit) return;
+        document.getElementById('editId').value = id;
+        document.getElementById('editIsTip').value = kayit.tip;
+        document.getElementById('editAciklama').value = kayit.aciklama;
+        document.getElementById('editModal').style.display = 'flex';
+    };
+
+    window.duzenleKaydet = async () => {
+        const id = document.getElementById('editId').value;
+        const tip = document.getElementById('editIsTip').value;
+        const aciklama = document.getElementById('editAciklama').value;
+
+        try {
+            const ref = doc(db, `teams/${currentEkip}/jobs`, id);
+            await updateDoc(ref, { tip, aciklama });
+            document.getElementById('editModal').style.display = 'none';
+        } catch(e) { alert("Güncelleme hatası: " + e.message); }
+    };
+    // DÜZENLEME FONKSİYONLARI SONU
+
     window.raporUret = async () => {
         const tarih = document.getElementById("raporTarihSecim").value;
         const plaka = document.getElementById("raporPlaka").value;
@@ -265,21 +336,45 @@
         document.getElementById("loginSection").style.display = "none";
         document.getElementById("appSection").style.display = "block";
         document.getElementById("displayEkip").innerText = currentEkip;
+        
         onSnapshot(collection(db, `teams/${currentEkip}/jobs`), (snap) => {
             const div = document.getElementById("isListesiContainer");
             div.innerHTML = "";
             let veri = [];
-            snap.forEach(d => veri.push({id:d.id, ...d.data()}));
+            
+            // SAYAÇ DEĞİŞKENLERİ
+            let c_toplam = 0, c_yapilan = 0, c_kalan = 0;
+
+            snap.forEach(d => {
+                const item = {id:d.id, ...d.data()};
+                veri.push(item);
+                
+                // SAYAÇ HESAPLAMA
+                c_toplam++;
+                if(item.durum === "Yapılan") c_yapilan++;
+                else c_kalan++;
+            });
+            
+            globalIsListesi = veri; // Düzenleme için global listeyi güncelle
+            
+            // SAYAÇ GÜNCELLEME
+            document.getElementById("sayacToplam").innerText = c_toplam;
+            document.getElementById("sayacYapilan").innerText = c_yapilan;
+            document.getElementById("sayacKalan").innerText = c_kalan;
+
             veri.sort((a,b) => b.timestamp - a.timestamp);
+            
             if(veri.length === 0) {
                 div.innerHTML = "<p style='text-align:center;color:#9ca3af;'>Kayıtlı iş yok.</p>";
                 return;
             }
+            
             veri.forEach(is => {
                 let badgeClass = "st-atanan";
                 if(is.durum === "Yapılan") badgeClass = "st-yapilan";
                 else if(is.durum === "Ertelenen") badgeClass = "st-ertel";
                 else if(is.durum === "Reklamasyon") badgeClass = "st-rek";
+                
                 div.innerHTML += `
                 <div class="card job-item" style="border-left-color:${badgeClass === 'st-rek' ? '#dc2626' : (badgeClass==='st-yapilan'?'#16a34a':'#2563eb')}">
                     <div style="display:flex; justify-content:space-between; align-items:start;">
@@ -294,6 +389,7 @@
                         <button class="action-btn" style="background:#16a34a" onclick="durumGuncelle('${is.id}', 'Yapılan')">✔ Yapıldı</button>
                         <button class="action-btn" style="background:#ca8a04" onclick="durumGuncelle('${is.id}', 'Ertelenen')">⏳ Ertele</button>
                         <button class="action-btn" style="background:#dc2626" onclick="durumGuncelle('${is.id}', 'Reklamasyon')">❌ Reklam</button>
+                        <button class="action-btn" style="background:#2563eb" onclick="modalAc('${is.id}')">✏️ Düzenle</button>
                         <button class="action-btn" style="background:#9ca3af" onclick="isSil('${is.id}')">🗑 Sil</button>
                     </div>
                 </div>`;
